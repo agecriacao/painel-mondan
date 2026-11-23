@@ -88,6 +88,7 @@ var IC = {
   instagram:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r=".6"/>',
   remarketing:'<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/>',
   evolucao:'<path d="M3 17l5-6 4 3 8-9"/><path d="M15 5h5v5"/>',
+  conteudo:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M10 8.5v5l4-2.5z"/><path d="M7 21h10"/>',
   kommo:'<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12.5h5"/>',
   google:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
   alerta:'<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4.5M12 17.5v.01"/>'
@@ -134,7 +135,7 @@ var AVAL_SINAL_DESDE = '2026-11-18', AVAL_ULTIMO_MES = '2026-11';
 var NOTA_PRES = 'Comparecimento, faltas e cancelamentos dependem do registro feito pelo atendimento da clínica na planilha de agendamentos.';
 function avalVisivel(r){ return r.ini <= fimMes(AVAL_ULTIMO_MES); }
 function avalNota(){ return (AVAL_SINAL_DESDE ? 'A partir de ' + dmy(AVAL_SINAL_DESDE) : 'Desde novembro de 2026') + ', a avaliação de dermatologia deixou de ser cortesia e passou a exigir sinal. Este quadro acompanha as avaliações cortesia que ainda estavam marcadas.'; }
-var PAGS = [['geral','Visão geral'],['agenda','Agenda e consultas'],['midia','Mídia paga'],['instagram','Instagram'],['kommo','Kommo'],['google','Google Ads'],['evolucao','Evolução 2026']];
+var PAGS = [['geral','Visão geral'],['agenda','Agenda e consultas'],['midia','Mídia paga'],['instagram','Instagram'],['conteudo','Análise de conteúdo'],['kommo','Kommo'],['google','Google Ads'],['evolucao','Evolução 2026']];
 var PRESETS = [['este_mes','Este mês'],['mes_passado','Mês passado'],['semana_passada','Semana passada'],['7d','7 dias'],['30d','30 dias']];
 
 function espOk(e){ var l = FILTRO_LISTA[sel.esp]; return !l || l.indexOf(e) >= 0; }
@@ -1082,6 +1083,146 @@ function kWhatsapp(f, a, b, bRot, ini, fim){
   f.appendChild(h('div', {class:'mt'}, [c3]));
 }
 
+
+/* =========================================================
+   Análise de conteúdo: criativos dos anúncios e publicações orgânicas
+   ========================================================= */
+var CSUB = [['anuncios','Criativos dos anúncios'],['organico','Publicações orgânicas']];
+var CORD = {anuncios:'invest', organico:'eng'};
+function crMeses(ini, fim){ var C = D.criativos; if (!C || !C.meses) return []; return meses(ini, fim).filter(function(m){ return C.meses[m]; }); }
+function crAgg(ini, fim){
+  var C = D.criativos, por = {}, ms = crMeses(ini, fim);
+  ms.forEach(function(m){
+    Object.keys(C.meses[m]).forEach(function(id){
+      var v = C.meses[m][id], ad = C.ads[id] || {}, k = ad.criativo || id;
+      var o = por[k] = por[k] || {k:k, nome:ad.titulo_ig || ad.nome, link:ad.link, tipo:ad.tipo, frentes:{}, ads:{}, lead:false, inv:0, imp:0, cli:0, ini:0, v3:0, thru:0, p25:0, p50:0, p75:0, p100:0, conv:0, tempo:0, rk:null, rkInv:-1};
+      o.frentes[ad.frente || 'Outras'] = 1; o.ads[id] = 1; if (/\[LEAD\]_\[WHATSAPP\]/i.test(ad.campanha || '')) o.lead = true;
+      o.inv += v[0]; o.imp += v[1]; o.cli += v[3]; o.ini += v[4]; o.v3 += v[5]; o.thru += v[6]; o.p25 += v[7]; o.p50 += v[8]; o.p75 += v[9]; o.p100 += v[10]; o.conv += v[12]; o.tempo += (v[11] || 0) * v[4];
+      if ((v[13] || v[14] || v[15]) && v[0] > o.rkInv){ o.rk = [v[13], v[14], v[15]]; o.rkInv = v[0]; }
+    });
+  });
+  var L = Object.keys(por).map(function(k){ var o = por[k];
+    o.video = o.ini > 0; o.ctr = o.imp ? o.cli / o.imp * 100 : null;
+    o.hook = o.video && o.imp && o.v3 ? o.v3 / o.imp * 100 : null;
+    o.hold = o.video && o.v3 ? o.thru / o.v3 * 100 : null;
+    o.ret75 = o.video && o.ini ? o.p75 / o.ini * 100 : null;
+    o.cpc = o.lead && o.conv ? o.inv / o.conv : null; o.cpm = o.imp ? o.inv / o.imp * 1000 : null; o.tm = o.ini ? o.tempo / o.ini : null;
+    return o; });
+  return {lista:L, meses:ms};
+}
+function somaCr(L){ var t = {inv:0, imp:0, cli:0, v3:0, thru:0, conv:0, impV:0, invL:0, convL:0}; L.forEach(function(o){ t.inv += o.inv; t.imp += o.imp; t.cli += o.cli; t.conv += o.conv; if (o.lead){ t.invL += o.inv; t.convL += o.conv; } if (o.video){ t.v3 += o.v3; t.thru += o.thru; t.impV += o.imp; } });
+  t.ctr = t.imp ? t.cli / t.imp * 100 : null; t.hook = t.impV ? t.v3 / t.impV * 100 : null; t.hold = t.v3 ? t.thru / t.v3 * 100 : null; t.cpc = t.convL ? t.invL / t.convL : null; return t; }
+function pct1(v){ return v === null || v === undefined ? '—' : nf1.format(v) + '%'; }
+function selo(v, ref, maiorMelhor){ if (v === null || ref === null || !ref) return null; var r = v / ref; var bom = maiorMelhor ? r >= 1.15 : r <= 0.85, ruim = maiorMelhor ? r <= 0.85 : r >= 1.15; return bom ? 'cbom' : (ruim ? 'cruim' : null); }
+var RK_TXT = {acima:'Acima da média', media:'Na média', abaixo:'Abaixo da média'};
+
+function pgConteudo(){
+  var A = periodoA(), f = document.createDocumentFragment();
+  if (!sel.caba) sel.caba = 'anuncios';
+  var ini = A.ini, fim = A.ate || A.fim;
+  var av = [];
+  var M = sel.caba === 'anuncios' ? crAgg(ini, fim) : null;
+  if (M && M.meses.length && (M.meses[0] + '-01' < ini || fimMes(M.meses[M.meses.length - 1]) > fim)) av.push('Anúncios somados por mês: ' + M.meses.map(function(m){ return nomeMes(m); }).join(', '));
+  if (M && ini < '2026-04-01') av.push('Criativos dos anúncios a partir de abril de 2026');
+  f.appendChild(cabecalho('Análise de conteúdo', A, null, av));
+  var tabs = h('div', {class:'tabs ksub', role:'tablist'});
+  CSUB.forEach(function(t){ var b = h('button', {type:'button', role:'tab', 'aria-selected':sel.caba === t[0] ? 'true' : 'false', text:t[1]}); b.addEventListener('click', function(){ sel.caba = t[0]; render(); }); tabs.appendChild(b); });
+  f.appendChild(tabs);
+  if (sel.caba === 'anuncios') cAnuncios(f, M); else cOrganico(f, ini, fim);
+  return f;
+}
+
+function ordenador(host, opcoes, chave, aoMudar){
+  var s = h('select', {class:'ord', 'aria-label':'Ordenar por'});
+  opcoes.forEach(function(o){ s.appendChild(h('option', {value:o[0], text:'Ordenar por ' + o[1].toLowerCase()})); });
+  s.value = CORD[chave]; s.addEventListener('change', function(){ CORD[chave] = s.value; aoMudar(); });
+  host.appendChild(s);
+}
+
+function cAnuncios(f, M){
+  var frs = {}; M.lista.forEach(function(o){ Object.keys(o.frentes).forEach(function(x){ frs[x] = (frs[x] || 0) + o.inv; }); });
+  if (sel.cfr && !frs[sel.cfr]) sel.cfr = null;
+  var todos = M.lista.filter(function(o){ return !sel.cfr || o.frentes[sel.cfr]; }), L = todos.filter(function(o){ return o.inv >= 30; }), T = somaCr(todos);
+  if (!todos.length){ f.appendChild(card('Nenhum anúncio com investimento neste período', null, [h('p', {class:'vazio', text:'Escolha um período a partir de abril de 2026.'})])); return; }
+  var g = h('div', {class:'grid g5'});
+  g.appendChild(tile({hero:true, rot:'Criativos no ar', v:todos.length, tipo:'n', nota:fmt(T.inv, 'brl0') + ' investidos no período'}));
+  g.appendChild(tile({rot:'CTR do link', v:T.ctr, tipo:'pct', nota:'cliques no link ÷ impressões'}));
+  g.appendChild(tile({rot:'Hook rate', v:T.hook, tipo:'pct', nota:'pararam 3 s no vídeo ÷ impressões'}));
+  g.appendChild(tile({rot:'Hold rate', v:T.hold, tipo:'pct', nota:'assistiram 15 s ou até o fim ÷ pararam 3 s'}));
+  g.appendChild(tile({rot:'Custo por conversa', v:T.cpc, tipo:'brl2', nota:fmt(T.convL) + ' conversas nas campanhas de conversa'}));
+  var chips = h('div', {class:'tabs crfr', role:'tablist', 'aria-label':'Frente'});
+  [[null, 'Todas as frentes']].concat(Object.keys(frs).sort(function(x, y){ return frs[y] - frs[x]; }).map(function(x){ return [x, x]; })).forEach(function(fr){
+    var b = h('button', {type:'button', role:'tab', 'aria-selected':(sel.cfr || null) === fr[0] ? 'true' : 'false', text:fr[1]});
+    b.addEventListener('click', function(){ sel.cfr = fr[0]; render(); }); chips.appendChild(b); });
+  f.appendChild(chips);
+  f.appendChild(g);
+
+  var c = card('Criativos', 'Cada criativo somado em todos os conjuntos em que rodou · verde e vermelho comparam com a média do período');
+  var OPC = [['invest','Investimento'],['ctr','CTR'],['hook','Hook rate'],['hold','Hold rate'],['cpc','Custo por conversa'],['conv','Conversas']];
+  var corpo = h('div');
+  function desenha(){
+    corpo.textContent = '';
+    var k = CORD.anuncios, val = function(o){ return k === 'invest' ? o.inv : k === 'conv' ? o.conv : o[k]; };
+    var lst = L.slice().sort(function(a, b){ var x = val(a), y = val(b); if (x === null || x === undefined) return 1; if (y === null || y === undefined) return -1; return k === 'cpc' ? x - y : y - x; });
+    corpo.appendChild(tabela(['Criativo', 'Investimento', 'CTR', 'Hook', 'Hold', 'Retenção 75%', 'Conversas', 'Custo/conversa', 'Qualidade (Meta)'], lst.map(function(o){
+      var fr = Object.keys(o.frentes).join(', ');
+      var nome = o.link ? h('a', {class:'lk', href:o.link, target:'_blank', rel:'noopener noreferrer', title:'Abrir a publicação no Instagram'}, [o.nome, h('span', {class:'ext', text:' ↗'})]) : h('span', {text:o.nome});
+      var chip = function(v, ref, maior, txt){ var cl = selo(v, ref, maior); return cl ? h('span', {class:'cchip ' + cl, text:txt}) : txt; };
+      var rk = o.rk && o.rk[0] ? h('span', {class:'rk rk-' + o.rk[0], text:RK_TXT[o.rk[0]]}) : '—';
+      return {cel:[h('span', {class:'crn'}, [nome, h('small', {text:fr + (o.video ? ' · vídeo' : (o.tipo === 'SHARE' ? ' · carrossel ou imagem' : ''))})]),
+        fmt(o.inv, 'brl0'), chip(o.ctr, T.ctr, true, pct1(o.ctr)), o.video ? chip(o.hook, T.hook, true, pct1(o.hook)) : '—', o.video ? chip(o.hold, T.hold, true, pct1(o.hold)) : '—',
+        o.video ? pct1(o.ret75) : '—', fmt(o.conv), o.cpc ? chip(o.cpc, T.cpc, false, fmt(o.cpc, 'brl2')) : h('span', {class:'mut', title:o.lead ? 'Sem conversas no período' : 'Campanha sem objetivo de conversa', text:'—'}), rk]};
+    }), null, {esq:[0]}));
+    if (todos.length > L.length) corpo.appendChild(h('p', {class:'nota', text:(todos.length - L.length) + ' criativos com menos de R$ 30 investidos no período ficaram fora da lista (pouco dado para comparar).'}));
+  }
+  var topo = h('div', {class:'crtopo'}); ordenador(topo, OPC, 'anuncios', desenha); c.appendChild(topo);
+  c.appendChild(corpo); desenha();
+  f.appendChild(h('div', {class:'mt'}, [c]));
+
+  var ex = card('Como ler', null, [h('ul', {class:'crlegenda'}, [
+    h('li', null, [h('b', {text:'CTR do link: '}), 'de cada 100 vezes que o anúncio apareceu, quantas viraram clique para conversar.']),
+    h('li', null, [h('b', {text:'Hook rate: '}), 'quanto o começo do vídeo segura a atenção: pessoas que pararam pelo menos 3 segundos. Abaixo de 20% costuma indicar abertura fraca.']),
+    h('li', null, [h('b', {text:'Hold rate: '}), 'de quem parou, quantos ficaram até 15 segundos ou até o fim. Mostra se o conteúdo sustenta o interesse.']),
+    h('li', null, [h('b', {text:'Retenção 75%: '}), 'quantos inícios de vídeo chegaram a três quartos da duração.']),
+    h('li', null, [h('b', {text:'Custo por conversa: '}), 'só nas campanhas de conversa no WhatsApp. Reconhecimento de marca e captação de médicos têm outro objetivo e ficam sem esse custo.']),
+    h('li', null, [h('b', {text:'Qualidade (Meta): '}), 'avaliação da própria Meta comparando o anúncio com outros que disputam o mesmo público.']),
+    h('li', null, [h('b', {text:'Cores: '}), 'verde quando o criativo está pelo menos 15% melhor que a média do período; vermelho quando está 15% pior.'])
+  ]), h('p', {class:'nota', text:'As visualizações de 3 segundos são calculadas pelo custo por visualização informado pela Meta (variação de até 2%). Campanhas da agência anterior ficam de fora.'})]);
+  f.appendChild(h('div', {class:'mt'}, [ex]));
+}
+
+function cOrganico(f, ini, fim){
+  var P = ((D.conteudo || {}).posts || []).filter(function(p){ return p.data >= ini && p.data <= fim; });
+  if (!P.length){ f.appendChild(card('Nenhuma publicação neste período', null, [h('p', {class:'vazio', text:'Escolha outro período.'})])); return; }
+  P.forEach(function(p){ p.eng = p.alcance ? p.interacoes / p.alcance * 100 : null; p.salv = p.alcance ? p.salvos / p.alcance * 100 : null; p.comp = p.alcance ? p.compart / p.alcance * 100 : null; });
+  var soma = function(k){ return P.reduce(function(t, p){ return t + (p[k] || 0); }, 0); };
+  var alc = soma('alcance'), eng = alc ? soma('interacoes') / alc * 100 : null;
+  var g = h('div', {class:'grid g4'});
+  g.appendChild(tile({hero:true, rot:'Publicações', v:P.length, tipo:'n', nota:'publicadas no período'}));
+  g.appendChild(tile({rot:'Alcance médio', v:Math.round(alc / P.length), tipo:'n', nota:'contas por publicação'}));
+  g.appendChild(tile({rot:'Taxa de engajamento', v:eng, tipo:'pct', nota:'interações ÷ alcance'}));
+  g.appendChild(tile({rot:'Salvos e compartilhamentos', v:soma('salvos') + soma('compart'), tipo:'n', nota:'sinal de conteúdo útil para o público'}));
+  f.appendChild(g);
+  var c = card('Publicações', 'Números acumulados de cada publicação até a última leitura · verde e vermelho comparam com a média do período');
+  var OPC = [['eng','Engajamento'],['alcance','Alcance'],['views','Visualizações'],['salvos','Salvamentos'],['compart','Compartilhamentos'],['seguidores','Seguidores gerados'],['data','Data']];
+  var corpo = h('div');
+  var mEng = eng, mAlc = alc / P.length, IMP = {};
+  Object.keys(((D.criativos || {}).mapa) || {}).forEach(function(c){ var src = D.criativos.mapa[c][1]; if (src) IMP[src] = 1; });
+  function desenha(){
+    corpo.textContent = '';
+    var k = CORD.organico;
+    var lst = P.slice().sort(function(a, b){ if (k === 'data') return a.data < b.data ? 1 : -1; return (b[k] || 0) - (a[k] || 0); });
+    corpo.appendChild(tabela(['Publicação', 'Formato', 'Alcance', 'Visualizações', 'Engajamento', 'Salvos', 'Compart.', 'Seguidores'], lst.map(function(p){
+      var chip = function(v, ref, txt){ var cl = selo(v, ref, true); return cl ? h('span', {class:'cchip ' + cl, text:txt}) : txt; };
+      return {cel:[h('span', {class:'crn'}, [h('a', {class:'lk', href:p.link, target:'_blank', rel:'noopener noreferrer', title:'Abrir no Instagram'}, [p.titulo, h('span', {class:'ext', text:' ↗'})]), h('small', null, [dm(p.data) + (p.especialidade ? ' · ' + p.especialidade : ''), IMP[p.id] ? h('span', {class:'rk rk-media', style:'margin-left:6px', text:'também foi anúncio'}) : null])]),
+        p.formato, chip(p.alcance, mAlc, fmt(p.alcance)), fmt(p.views), chip(p.eng, mEng, pct1(p.eng)), fmt(p.salvos), fmt(p.compart), fmt(p.seguidores)]};
+    }), null, {esq:[0]}));
+  }
+  var topo = h('div', {class:'crtopo'}); ordenador(topo, OPC, 'organico', desenha); c.appendChild(topo);
+  c.appendChild(corpo); desenha();
+  f.appendChild(h('div', {class:'mt'}, [c]));
+}
+
 /* =========================================================
    Google Ads (rascunho: campanha ainda não começou)
    ========================================================= */
@@ -1263,7 +1404,7 @@ function notas(){
 /* =========================================================
    Filtros, navegação e URL
    ========================================================= */
-var PAGF = {geral:pgGeral, agenda:pgAgenda, midia:pgMidia, instagram:pgInstagram, remarketing:pgRemarketing, kommo:pgKommo, google:pgGoogle, evolucao:pgEvolucao};
+var PAGF = {geral:pgGeral, agenda:pgAgenda, midia:pgMidia, instagram:pgInstagram, remarketing:pgRemarketing, kommo:pgKommo, conteudo:pgConteudo, google:pgGoogle, evolucao:pgEvolucao};
 function render(){
   CACHE = {};
   var v = document.getElementById('view');
@@ -1279,7 +1420,7 @@ function syncFiltros(){
   document.getElementById('chk-cmp').checked = sel.cmpOn;
   document.getElementById('sel-esp').value = sel.esp;
   document.querySelectorAll('#per-seg button').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.p === sel.preset ? 'true' : 'false'); });
-  var semEsp = sel.pag === 'instagram' || sel.pag === 'remarketing' || sel.pag === 'kommo';
+  var semEsp = sel.pag === 'instagram' || sel.pag === 'remarketing' || sel.pag === 'kommo' || sel.pag === 'conteudo';
   document.getElementById('sel-esp').disabled = semEsp;
 }
 function salvaUrl(){
@@ -1291,6 +1432,7 @@ function salvaUrl(){
     else { q.set('p', sel.preset); if (sel.preset === 'custom'){ q.set('ini', sel.ini); q.set('fim', sel.fim); } if (!sel.cmpOn) q.set('cmpOn', '0'); }
     if (sel.esp !== 'todas') q.set('esp', sel.esp);
     if (sel.pag === 'kommo' && sel.kaba && sel.kaba !== 'atendimento') q.set('aba', sel.kaba);
+    if (sel.pag === 'conteudo' && sel.caba === 'organico') q.set('aba', 'organico');
     u.hash = sel.pag; history.replaceState(null, '', u);
   } catch (e) {}
 }
@@ -1300,6 +1442,7 @@ function lerUrl(){
     if (PAGF[hs]) sel.pag = hs;
     if (hs === 'remarketing'){ sel.pag = 'kommo'; sel.kaba = 'remarketing'; }
     if (KSUB.some(function(t){ return t[0] === q.get('aba'); })) sel.kaba = q.get('aba');
+    if (q.get('aba') === 'organico') sel.caba = 'organico';
     if (q.get('modo') === 'periodo'){
       sel.modo = 'periodo'; var p = q.get('p') || 'semana_passada';
       if (p === 'custom' && /^\d{4}-\d\d-\d\d$/.test(q.get('ini') || '') && /^\d{4}-\d\d-\d\d$/.test(q.get('fim') || '')){ sel.preset = 'custom'; sel.ini = q.get('ini'); sel.fim = q.get('fim'); }
