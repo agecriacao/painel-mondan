@@ -1018,8 +1018,10 @@ function kLeads(f, a, b, bRot){
   var g = h('div', {class:'grid g4'});
   g.appendChild(tile({hero:true, rot:'Leads novos no Kommo', v:a.novos, b:b ? b.novos : undefined, bRot:bRot, tipo:'n', sentido:'neutro', nota:'Inclui orgânicos. Leads de anúncio e custo por lead oficiais estão em Mídia paga.'}));
   var ANUNCIO_DESDE = '2026-11-01', iniP = sel.modo === 'mes' ? sel.mes + '-01' : sel.ini;
-  if (iniP >= ANUNCIO_DESDE) g.appendChild(tile({rot:'Vieram de anúncio', v:a.anuncio, b:b && b.anuncio ? b.anuncio : undefined, bRot:bRot, tipo:'n', nota:pctTxt(a.anuncio, a.novos) + ' dos leads novos'}));
-  else g.appendChild(tile({rot:'Vieram de anúncio', v:null, nota:'O Kommo passou a registrar o anúncio de origem em novembro de 2026.'}));
+  var fimP = sel.modo === 'mes' ? (periodoA().ate || periodoA().fim) : sel.fim, metaLeads = 0;
+  Object.keys((D.diario && D.diario.meta) || {}).forEach(function(d){ if (d >= iniP && d <= fimP) metaLeads += D.diario.meta[d][2] || 0; });
+  if (iniP >= ANUNCIO_DESDE) g.appendChild(tile({rot:'Leads de anúncio no Kommo', v:a.anuncio, b:b && b.anuncio ? b.anuncio : undefined, bRot:bRot, tipo:'n', nota:pctTxt(a.anuncio, a.novos) + ' dos leads novos · o Meta contou ' + fmt(metaLeads) + ' conversas no período (quem já era lead não vira lead novo)'}));
+  else g.appendChild(tile({rot:'Leads de anúncio no Kommo', v:null, nota:'O Kommo só identifica o anúncio de origem a partir de novembro de 2026. Antes disso, use os leads do Meta (' + fmt(metaLeads) + ' conversas no período), em Mídia paga.'}));
   g.appendChild(tile({rot:'Novos leads já agendados', v:a.agendou, b:b ? b.agendou : undefined, bRot:bRot, tipo:'n', nota:pctTxt(a.agendou, a.novos) + ', pela etapa no Kommo. O total de agendamentos está em Agenda e consultas.'}));
   g.appendChild(tile({rot:'Perdidos', v:a.perdido, b:b ? b.perdido : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:pctTxt(a.perdido, a.novos) + ' dos leads novos'}));
   f.appendChild(g);
