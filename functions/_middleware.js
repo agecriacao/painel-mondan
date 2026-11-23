@@ -2,7 +2,7 @@
 // O segredo do Google (GOOGLE_CLIENT_SECRET) fica nas variáveis do projeto no Cloudflare, nunca no código.
 // Sem o segredo configurado, o painel fica fechado para todos.
 
-const CLIENT_ID = '';            // ID do cliente OAuth do Google (não é segredo)
+const CLIENT_ID = '519947261034-4r21ntbhtm7vg25ih9qrgt8041j24t79.apps.googleusercontent.com';          // ID do cliente OAuth do Google (não é segredo)
 const HOST = 'painel-mondan.pages.dev';
 const REDIRECT = 'https://' + HOST + '/_auth/callback';
 const DIAS = 30;                 // validade do login
