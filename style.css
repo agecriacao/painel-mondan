@@ -368,3 +368,8 @@ td.mut,tr.mut td{color:var(--ink-3)}
 .gcheck li.ok i::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .gcheck li.ok span{color:var(--ink-3);text-decoration:line-through}
 .gcheck li.ok small{color:#2F8A57;font-weight:600}
+
+/* Kommo: abas internas da página */
+.ksub{margin:2px 0 16px}
+.ksub button{padding:7px 16px;font-size:13px}
+.hb-f.cl{opacity:.55}

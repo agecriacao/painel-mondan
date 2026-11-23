@@ -19,6 +19,8 @@ function fmt(v, tipo){
   if (tipo === 'brl2') return nbsp(brl2.format(v));
   if (tipo === 'pct') return nf1.format(v) + '%';
   if (tipo === 'dias') return nf1.format(v) + (v === 1 ? ' dia' : ' dias');
+  if (tipo === 'n1') return nf1.format(v);
+  if (tipo === 'min') return v < 60 ? nf0.format(v) + ' min' : nf1.format(v / 60) + ' h';
   if (tipo === 'k') return v >= 10000 ? nf1.format(v / 1000) + ' mil' : nf0.format(v);
   return nf0.format(v);
 }
@@ -29,6 +31,7 @@ function compacto(v, tipo){
     return 'R$' + (tipo === 'brl2' ? nf1.format(v) : nf0.format(v));
   }
   if (tipo === 'pct') return nf0.format(v) + '%';
+  if (tipo === 'n1' && v < 100) return nf1.format(v);
   if (v >= 10000) return nf0.format(v / 1000) + 'k';
   if (v >= 1000) return nf1.format(v / 1000) + 'k';
   return nf0.format(v);
@@ -85,6 +88,7 @@ var IC = {
   instagram:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r=".6"/>',
   remarketing:'<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/>',
   evolucao:'<path d="M3 17l5-6 4 3 8-9"/><path d="M15 5h5v5"/>',
+  kommo:'<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12.5h5"/>',
   google:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
   alerta:'<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4.5M12 17.5v.01"/>'
 };
@@ -130,7 +134,7 @@ var AVAL_SINAL_DESDE = '2026-11-18', AVAL_ULTIMO_MES = '2026-11';
 var NOTA_PRES = 'Comparecimento, faltas e cancelamentos dependem do registro feito pelo atendimento da clínica na planilha de agendamentos.';
 function avalVisivel(r){ return r.ini <= fimMes(AVAL_ULTIMO_MES); }
 function avalNota(){ return (AVAL_SINAL_DESDE ? 'A partir de ' + dmy(AVAL_SINAL_DESDE) : 'Desde novembro de 2026') + ', a avaliação de dermatologia deixou de ser cortesia e passou a exigir sinal. Este quadro acompanha as avaliações cortesia que ainda estavam marcadas.'; }
-var PAGS = [['geral','Visão geral'],['agenda','Agenda e consultas'],['midia','Mídia paga'],['instagram','Instagram'],['remarketing','Remarketing'],['google','Google Ads'],['evolucao','Evolução 2026']];
+var PAGS = [['geral','Visão geral'],['agenda','Agenda e consultas'],['midia','Mídia paga'],['instagram','Instagram'],['kommo','Kommo'],['google','Google Ads'],['evolucao','Evolução 2026']];
 var PRESETS = [['semana_passada','Semana passada'],['7d','7 dias'],['30d','30 dias'],['este_mes','Este mês'],['mes_passado','Mês passado']];
 
 function espOk(e){ var l = FILTRO_LISTA[sel.esp]; return !l || l.indexOf(e) >= 0; }
@@ -788,7 +792,7 @@ var RMK = {db:null, docs:null, estado:'carregando', pode:null, form:null, msg:nu
 var RMK_ESP = ['Dermatologia', 'Capilar', 'Blefaroplastia', 'Ginecologia', 'Endocrinologia', 'Urologia', 'Vascular', 'Proctologia', 'Outras'];
 function hojeIso(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function somaDias(iso, n){ var d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
-function rmkRender(){ if (sel.pag !== 'remarketing') return; if (RMK.form){ RMK.pendente = true; return; } render(); }
+function rmkRender(){ if (sel.pag !== 'remarketing' && !(sel.pag === 'kommo' && sel.kaba === 'remarketing')) return; if (RMK.form){ RMK.pendente = true; return; } render(); }
 function rmkInit(){
   if (!window.claude || !window.claude.use){ RMK.estado = 'sem'; return; }
   window.claude.use('user').then(function(u){
@@ -904,6 +908,166 @@ function pgRemarketing(){
   }), null, {esq:[0, 1]}));
   row.appendChild(c1); row.appendChild(c2); f.appendChild(row);
   return f;
+}
+
+
+/* =========================================================
+   Kommo: atendimento, leads no CRM, WhatsApp e custos, remarketing
+   ========================================================= */
+var KSUB = [['atendimento','Atendimento'],['leads','Leads no CRM'],['whatsapp','WhatsApp e custos'],['remarketing','Remarketing']];
+var usd2 = new Intl.NumberFormat('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+function usd(v){ return v === null || v === undefined ? '—' : 'US$ ' + usd2.format(v); }
+function kIni(){ var K = D.kommo; if (!K || !K.meses) return null; var ms = Object.keys(K.meses).sort(); return ms.length ? ms[0] + '-01' : null; }
+function kFim(){ var K = D.kommo, f = null; if (!K || !K.meses) return null; Object.keys(K.meses).forEach(function(m){ Object.keys(K.meses[m].dias || {}).forEach(function(d){ if (!f || d > f) f = d; }); }); return f; }
+function kAgg(ini, fim){
+  var a = {dias:0, novos:0, anuncio:0, fora:0, b2b:0, agendou:0, perdido:0, aberto:0, esp:{}, perdas:{}, resp:[], resp_c:[], sem_resp:0, so_robo:0,
+    recebidas:0, equipe:0, automaticas:0, wa_env:0, wa_ent:0, wa_custo:0, wa_dias:0, serie:[]};
+  var K = D.kommo; if (!K || !K.meses) return a;
+  for (var d = ini; d <= fim; d = addD(d, 1)){
+    var m = K.meses[d.slice(0, 7)], x = m && m.dias && m.dias[d]; if (!x) continue;
+    a.dias++;
+    ['novos','anuncio','fora','b2b','agendou','perdido','aberto','sem_resp','so_robo','recebidas','equipe','automaticas'].forEach(function(k){ a[k] += x[k] || 0; });
+    Object.keys(x.esp || {}).forEach(function(e){ var v = x.esp[e], t = a.esp[e] = a.esp[e] || [0, 0, 0]; if (typeof v === 'number') t[0] += v; else { t[0] += v[0]; t[1] += v[1]; t[2] += v[2]; } });
+    Object.keys(x.perdas || {}).forEach(function(e){ a.perdas[e] = (a.perdas[e] || 0) + x.perdas[e]; });
+    a.resp = a.resp.concat(x.resp || []); a.resp_c = a.resp_c.concat(x.resp_c || []);
+    if (x.wa){ a.wa_env += x.wa[0]; a.wa_ent += x.wa[1]; a.wa_custo += x.wa[2]; a.wa_dias++; }
+  }
+  return a;
+}
+function kModelos(ini, fim){
+  var K = D.kommo, por = {}, ms = [];
+  if (!K || !K.meses) return {lista:[], meses:[]};
+  meses(ini, fim).forEach(function(m){
+    var x = K.meses[m]; if (!x || !x.modelos) return; ms.push(m);
+    x.modelos.forEach(function(t){ var o = por[t.modelo] = por[t.modelo] || {modelo:t.modelo, familia:t.familia, enviados:0, entregues:0, lidos:0, respostas:0, custo:0};
+      o.enviados += t.enviados; o.entregues += t.entregues; o.lidos += t.lidos; o.respostas += t.respostas; o.custo += t.custo; });
+  });
+  return {lista:Object.keys(por).map(function(k){ return por[k]; }).sort(function(x, y){ return y.custo - x.custo || y.enviados - x.enviados; }), meses:ms};
+}
+function mediana(arr){ if (!arr.length) return null; var b = arr.slice().sort(function(x, y){ return x - y; }), i = Math.floor(b.length / 2); return b.length % 2 ? b[i] : Math.round((b[i - 1] + b[i]) / 2); }
+function pctAte(arr, lim){ return arr.length ? arr.filter(function(v){ return v <= lim; }).length / arr.length * 100 : null; }
+function fmtMin(m){ if (m === null || m === undefined) return '—'; if (m < 60) return nf0.format(m) + ' min'; if (m < 1440) return nf1.format(m / 60) + ' h'; return nf1.format(m / 1440) + (m < 2880 ? ' dia' : ' dias'); }
+function pctTxt(v, t){ return t ? nf0.format(v / t * 100) + '%' : '—'; }
+
+function pgKommo(){
+  var A = periodoA(), B = periodoB(), f = document.createDocumentFragment();
+  if (!sel.kaba) sel.kaba = 'atendimento';
+  var ini0 = kIni(), fimK = kFim();
+  var aIni = A.ini, aFim = A.ate || A.fim;
+  var avisos = [];
+  if (sel.kaba !== 'remarketing'){
+    if (!ini0) avisos.push('Dados do Kommo ainda não carregados');
+    else {
+      if (aIni < ini0) avisos.push('Kommo no painel a partir de ' + dm(ini0) + '/' + ini0.slice(0, 4));
+      if (fimK && aFim > fimK) avisos.push('Kommo lido até ' + dm(fimK));
+    }
+  }
+  f.appendChild(cabecalho('Kommo', A, sel.kaba === 'remarketing' ? null : B, avisos));
+  var tabs = h('div', {class:'tabs ksub', role:'tablist'});
+  KSUB.forEach(function(t){
+    var b = h('button', {type:'button', role:'tab', 'aria-selected':sel.kaba === t[0] ? 'true' : 'false', text:t[1]});
+    b.addEventListener('click', function(){ sel.kaba = t[0]; render(); });
+    tabs.appendChild(b);
+  });
+  f.appendChild(tabs);
+  if (sel.kaba === 'remarketing'){ var r = pgRemarketing(); var ph = r.querySelector && r.querySelector('.phead'); if (ph) ph.remove(); f.appendChild(r); return f; }
+  var a = kAgg(aIni, aFim), b = B ? kAgg(B.ini, B.fim) : null, bRot = B ? (sel.modo === 'mes' ? nomeMes(B.mes || sel.cmp) : 'período anterior') : null;
+  if (b && !b.dias) b = null;
+  if (!a.dias){ f.appendChild(card('Sem dados do Kommo neste período', null, [h('p', {class:'vazio', text:'A leitura do Kommo começa em ' + (ini0 ? dmy(ini0) : 'breve') + '. Escolha um período a partir daí.'})])); return f; }
+  if (sel.kaba === 'atendimento') kAtendimento(f, a, b, bRot, A);
+  else if (sel.kaba === 'leads') kLeads(f, a, b, bRot);
+  else kWhatsapp(f, a, b, bRot, aIni, aFim);
+  return f;
+}
+
+var EXPED = 'seg a sex, das 8h às 18h';
+function fmtUtil(m){ if (m === null || m === undefined) return '—'; if (m < 60) return nf0.format(m) + ' min'; return nf1.format(m / 60) + ' h'; }
+function kAtendimento(f, a, b, bRot, A){
+  var med = mediana(a.resp), medB = b ? mediana(b.resp) : null;
+  var g = h('div', {class:'grid g4'});
+  g.appendChild(tile({hero:true, rot:'Primeira resposta da equipe', v:med, b:b ? medB : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'mediana, contando só o horário de atendimento'}));
+  g.appendChild(tile({rot:'Respondidos em até 15 min', v:pctAte(a.resp, 15), b:b ? pctAte(b.resp, 15) : undefined, bRot:bRot, tipo:'pct', pp:true, nota:'contando só o horário de atendimento'}));
+  g.appendChild(tile({rot:'Sem resposta da equipe', v:a.sem_resp, b:b ? b.sem_resp : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:'após um dia útil' + (a.so_robo ? ' · ' + a.so_robo + ' receberam só mensagens automáticas' : '')}));
+  g.appendChild(tile({rot:'Chegaram fora do horário', v:a.fora, b:b ? b.fora : undefined, bRot:bRot, tipo:'n', sentido:'neutro', nota:pctTxt(a.fora, a.novos) + ' dos leads novos: noite, fim de semana ou feriado'}));
+  f.appendChild(g);
+
+  var row = h('div', {class:'grid g2 mt'});
+  var c1 = card('Quanto a equipe levou para responder', 'Tempo em horário de atendimento até a primeira mensagem de uma pessoa da equipe');
+  var FX = [[5, 'Até 5 min'], [15, '5 a 15 min'], [60, '15 min a 1 h'], [240, '1 a 4 h'], [600, '4 h a 1 dia útil'], [1e9, 'Mais de 1 dia útil']];
+  var ant = -1;
+  barrasH(c1, FX.map(function(x){ var lo = ant; ant = x[0]; var n = a.resp.filter(function(v){ return v > lo && v <= x[0]; }).length;
+    return {l:x[1], sub:pctTxt(n, a.resp.length) + ' dos respondidos', v:n}; }));
+  c1.appendChild(h('p', {class:'nota', text:nf0.format(a.resp.length) + ' leads respondidos pela equipe. Em tempo corrido (com noites e fins de semana), a mediana foi de ' + fmtMin(mediana(a.resp_c)) + '. Robôs e mensagens automáticas não contam como resposta.'}));
+  var c2 = card('Mensagens no período', 'Conversas de leads no WhatsApp e no Instagram');
+  barrasH(c2, [
+    {l:'Recebidas dos leads', v:a.recebidas, b:b ? b.recebidas : undefined, bRot:bRot},
+    {l:'Enviadas pela equipe', v:a.equipe, b:b ? b.equipe : undefined, bRot:bRot},
+    {l:'Automáticas', sub:'robôs, follow-up e modelos', v:a.automaticas, b:b ? b.automaticas : undefined, bRot:bRot, cls:'cl'}
+  ]);
+  row.appendChild(c1); row.appendChild(c2); f.appendChild(row);
+
+  var porDia = ndias(A.ini, A.ate || A.fim) <= 45;
+  var c3 = card('Respondidos em até 15 minutos', 'Por ' + (porDia ? 'dia de chegada do lead' : 'semana') + ', contando só o horário de atendimento');
+  var pts = baldes({ini:A.ini, fim:A.ate || A.fim}).map(function(p){ var x = kAgg(p.ini, p.fim); return {l:p.l, t:p.t + ' · ' + x.resp.length + ' leads respondidos · mediana ' + fmtUtil(mediana(x.resp)), v:x.resp.length >= 3 ? pctAte(x.resp, 15) : null}; });
+  colunas(c3, pts, {nome:'Respondidos em até 15 min', tipo:'pct', rotulos:pts.length <= 16, altura:190, cor:'#D8C3A3'});
+  c3.appendChild(h('p', {class:'nota', text:'Horário de atendimento considerado: ' + EXPED + ', que é quando a equipe responde no Kommo. Feriados e dias sem atividade da equipe não contam. Dias com menos de 3 leads respondidos ficam sem barra.'}));
+  f.appendChild(h('div', {class:'mt'}, [c3]));
+}
+
+function kLeads(f, a, b, bRot){
+  var g = h('div', {class:'grid g4'});
+  g.appendChild(tile({hero:true, rot:'Leads novos no Kommo', v:a.novos, b:b ? b.novos : undefined, bRot:bRot, tipo:'n', sentido:'neutro', nota:'Inclui orgânicos. Leads de anúncio e custo por lead oficiais estão em Mídia paga.'}));
+  var ANUNCIO_DESDE = '2026-11-01', iniP = sel.modo === 'mes' ? sel.mes + '-01' : sel.ini;
+  if (iniP >= ANUNCIO_DESDE) g.appendChild(tile({rot:'Vieram de anúncio', v:a.anuncio, b:b && b.anuncio ? b.anuncio : undefined, bRot:bRot, tipo:'n', nota:pctTxt(a.anuncio, a.novos) + ' dos leads novos'}));
+  else g.appendChild(tile({rot:'Vieram de anúncio', v:null, nota:'O Kommo passou a registrar o anúncio de origem em novembro de 2026.'}));
+  g.appendChild(tile({rot:'Novos leads já agendados', v:a.agendou, b:b ? b.agendou : undefined, bRot:bRot, tipo:'n', nota:pctTxt(a.agendou, a.novos) + ', pela etapa no Kommo. O total de agendamentos está em Agenda e consultas.'}));
+  g.appendChild(tile({rot:'Perdidos', v:a.perdido, b:b ? b.perdido : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:pctTxt(a.perdido, a.novos) + ' dos leads novos'}));
+  f.appendChild(g);
+  var row = h('div', {class:'grid g-7-5 mt'});
+  var es = Object.keys(a.esp).sort(function(x, y){ return a.esp[y][0] - a.esp[x][0]; });
+  var c1 = card('Leads por especialidade', 'Funil em que o lead está hoje no Kommo');
+  c1.appendChild(tabela(['Especialidade', 'Novos', 'Agendaram', '% agend.', 'Perdidos'], es.map(function(e){ var x = a.esp[e];
+    return {cel:[e === 'Funil Geral' ? 'Ainda no Funil Geral' : e, fmt(x[0]), fmt(x[1]), pctTxt(x[1], x[0]), fmt(x[2])]}; }),
+    ['Total', fmt(a.novos), fmt(a.agendou), pctTxt(a.agendou, a.novos), fmt(a.perdido)], {esq:[0]}));
+  c1.appendChild(h('p', {class:'nota', text:'Agendaram = leads que hoje estão em consulta agendada, paciente ou não compareceu. A situação muda com o tempo: períodos recentes ainda vão crescer. Importações em lote, médicos e parceiros ficam de fora.'}));
+  var c2 = card('Motivos de perda', 'Leads novos do período marcados como perdidos');
+  var ps = Object.keys(a.perdas).sort(function(x, y){ return a.perdas[y] - a.perdas[x]; });
+  if (!ps.length) c2.appendChild(h('p', {class:'vazio', text:'Nenhum lead perdido no período.'}));
+  else barrasH(c2, ps.slice(0, 8).map(function(k){ return {l:k, sub:pctTxt(a.perdas[k], a.perdido) + ' das perdas', v:a.perdas[k]}; }));
+  row.appendChild(c1); row.appendChild(c2); f.appendChild(row);
+}
+
+function kWhatsapp(f, a, b, bRot, ini, fim){
+  var g = h('div', {class:'grid g4'});
+  g.appendChild(tile({hero:true, rot:'Custo do WhatsApp', txt:usd(a.wa_custo), nota:(b ? bRot + ': ' + usd(b.wa_custo) + ' · ' : '') + 'cobrado pela Meta, em dólar'}));
+  g.appendChild(tile({rot:'Mensagens enviadas', v:a.wa_env, b:b ? b.wa_env : undefined, bRot:bRot, tipo:'n', sentido:'neutro'}));
+  g.appendChild(tile({rot:'Entregues', v:a.wa_ent, b:b ? b.wa_ent : undefined, bRot:bRot, tipo:'n', sentido:'neutro', nota:pctTxt(a.wa_ent, a.wa_env) + ' das enviadas'}));
+  g.appendChild(tile({rot:'Custo por mensagem entregue', txt:a.wa_ent ? usd(a.wa_custo / a.wa_ent) : '—', nota:b && b.wa_ent ? bRot + ': ' + usd(b.wa_custo / b.wa_ent) : null}));
+  f.appendChild(g);
+
+  var M = kModelos(ini, fim), por = {};
+  M.lista.forEach(function(t){ var o = por[t.familia] = por[t.familia] || {enviados:0, lidos:0, respostas:0, custo:0, entregues:0}; o.enviados += t.enviados; o.entregues += t.entregues; o.lidos += t.lidos; o.respostas += t.respostas; o.custo += t.custo; });
+  var fams = Object.keys(por).sort(function(x, y){ return por[y].custo - por[x].custo; });
+  var mesesTxt = M.meses.map(function(m){ return nomeMes(m); }).join(', ');
+  var parcial = sel.modo === 'periodo' && M.meses.length && (M.meses[0] + '-01' < ini || fimMes(M.meses[M.meses.length - 1]) > fim);
+  var row = h('div', {class:'grid g-5-7 mt'});
+  var c1 = card('Para onde vai o custo', 'Mensagens com modelo da Meta, por tipo' + (parcial ? ' · meses inteiros: ' + mesesTxt : ''));
+  if (!fams.length) c1.appendChild(h('p', {class:'vazio', text:'Nenhum modelo enviado no período.'}));
+  else {
+    var tot = fams.reduce(function(t, k){ return t + por[k].custo; }, 0);
+    barrasH(c1, fams.map(function(k){ return {l:k, sub:fmt(por[k].enviados) + ' envios · ' + pctTxt(por[k].custo, tot) + ' do custo', v:Math.round(por[k].custo), tip:usd(por[k].custo)}; }));
+    c1.appendChild(h('p', {class:'nota', text:'Valores arredondados em dólar. A Meta cobra pelas mensagens com modelo; as respostas dentro da conversa aberta pelo lead não têm custo.'}));
+  }
+  var c2 = card('Desempenho dos modelos', 'Taxa de leitura e de resposta' + (parcial ? ' · meses inteiros: ' + mesesTxt : ''));
+  c2.appendChild(tabela(['Modelo', 'Envios', 'Leram', 'Responderam', 'Custo'], M.lista.slice(0, 14).map(function(t){
+    return {cel:[h('span', null, [t.modelo.replace(/_/g, ' '), h('small', {class:'rmk-nome', text:t.familia})]), fmt(t.enviados), pctTxt(t.lidos, t.entregues), pctTxt(t.respostas, t.entregues), usd(t.custo)]}; }), null, {esq:[0]}));
+  row.appendChild(c1); row.appendChild(c2); f.appendChild(row);
+
+  var c3 = card('Custo do WhatsApp por dia', 'Em dólar');
+  var pts = baldes({ini:ini, fim:fim}).map(function(p){ var x = kAgg(p.ini, p.fim); return {l:p.l, t:p.t + ' · ' + fmt(x.wa_env) + ' mensagens', v:x.wa_dias ? Math.round(x.wa_custo * 100) / 100 : null}; });
+  c3.querySelector('h2').textContent = 'Custo do WhatsApp por ' + (ndias(ini, fim) <= 45 ? 'dia' : (ndias(ini, fim) <= 200 ? 'semana' : 'mês'));
+  colunas(c3, pts, {nome:'Custo (US$)', tipo:'n1', rotulos:pts.length <= 16, altura:190, cor:'#D8C3A3'});
+  f.appendChild(h('div', {class:'mt'}, [c3]));
 }
 
 /* =========================================================
@@ -1087,7 +1251,7 @@ function notas(){
 /* =========================================================
    Filtros, navegação e URL
    ========================================================= */
-var PAGF = {geral:pgGeral, agenda:pgAgenda, midia:pgMidia, instagram:pgInstagram, remarketing:pgRemarketing, google:pgGoogle, evolucao:pgEvolucao};
+var PAGF = {geral:pgGeral, agenda:pgAgenda, midia:pgMidia, instagram:pgInstagram, remarketing:pgRemarketing, kommo:pgKommo, google:pgGoogle, evolucao:pgEvolucao};
 function render(){
   CACHE = {};
   var v = document.getElementById('view');
@@ -1107,17 +1271,18 @@ function syncFiltros(){
   document.getElementById('chk-cmp').checked = sel.cmpOn;
   document.getElementById('sel-esp').value = sel.esp;
   document.querySelectorAll('#per-seg button').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.p === sel.preset ? 'true' : 'false'); });
-  var semEsp = sel.pag === 'instagram' || sel.pag === 'remarketing';
+  var semEsp = sel.pag === 'instagram' || sel.pag === 'remarketing' || sel.pag === 'kommo';
   document.getElementById('sel-esp').disabled = semEsp;
 }
 function salvaUrl(){
   try {
     var u = new URL(location.href), q = u.searchParams;
-    ['modo','mes','cmp','p','ini','fim','cmpOn','esp'].forEach(function(k){ q.delete(k); });
+    ['modo','mes','cmp','p','ini','fim','cmpOn','esp','aba'].forEach(function(k){ q.delete(k); });
     q.set('modo', sel.modo);
     if (sel.modo === 'mes'){ q.set('mes', sel.mes); q.set('cmp', sel.cmp); }
     else { q.set('p', sel.preset); if (sel.preset === 'custom'){ q.set('ini', sel.ini); q.set('fim', sel.fim); } if (!sel.cmpOn) q.set('cmpOn', '0'); }
     if (sel.esp !== 'todas') q.set('esp', sel.esp);
+    if (sel.pag === 'kommo' && sel.kaba && sel.kaba !== 'atendimento') q.set('aba', sel.kaba);
     u.hash = sel.pag; history.replaceState(null, '', u);
   } catch (e) {}
 }
@@ -1125,6 +1290,8 @@ function lerUrl(){
   try {
     var q = new URLSearchParams(location.search), hs = location.hash.slice(1);
     if (PAGF[hs]) sel.pag = hs;
+    if (hs === 'remarketing'){ sel.pag = 'kommo'; sel.kaba = 'remarketing'; }
+    if (KSUB.some(function(t){ return t[0] === q.get('aba'); })) sel.kaba = q.get('aba');
     if (q.get('modo') === 'periodo'){
       sel.modo = 'periodo'; var p = q.get('p') || 'semana_passada';
       if (p === 'custom' && /^\d{4}-\d\d-\d\d$/.test(q.get('ini') || '') && /^\d{4}-\d\d-\d\d$/.test(q.get('fim') || '')){ sel.preset = 'custom'; sel.ini = q.get('ini'); sel.fim = q.get('fim'); }
@@ -1179,7 +1346,7 @@ function montar(){
   se.addEventListener('change', function(){ sel.esp = se.value; render(); });
 
   var fo = document.getElementById('fontes');
-  [['Agenda (Kommo)', dm(KOMMO_LIDO)], ['Anúncios (Meta)', dm(HOJE)], ['Instagram', D.instagram_ate ? dm(D.instagram_ate) : 'out/2026'], ['Remarketing', dm((function(){ var l = rmkLista().filter(function(x){ return x.status !== 'prog'; }); return l.length ? l[0].data : D.remarketing.recentes[D.remarketing.recentes.length - 1].data; })())]]
+  [['Agenda (Kommo)', dm(KOMMO_LIDO)], ['Anúncios (Meta)', dm(HOJE)], ['Instagram', D.instagram_ate ? dm(D.instagram_ate) : 'out/2026'], ['Kommo', D.kommo && D.kommo.lido_em ? dm(kFim() || D.kommo.lido_em) : '—'], ['Remarketing', dm((function(){ var l = rmkLista().filter(function(x){ return x.status !== 'prog'; }); return l.length ? l[0].data : D.remarketing.recentes[D.remarketing.recentes.length - 1].data; })())]]
     .forEach(function(x){ fo.appendChild(h('li', null, [h('span', {text:x[0]}), h('b', {text:x[1]})])); });
   document.getElementById('rodape-txt').textContent = 'Agenda lida em ' + dmy(KOMMO_LIDO) + ' · anúncios do Meta até ' + dmy(HOJE) + ' · Instagram e remarketing da planilha de acompanhamento.';
 }
