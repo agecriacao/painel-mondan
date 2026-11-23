@@ -132,7 +132,7 @@ var ST = [
 ];
 /* Avaliação cortesia: a clínica passou a cobrar sinal. A data exata pode ser preenchida em AVAL_SINAL_DESDE (AAAA-MM-DD). */
 var AVAL_SINAL_DESDE = '2026-11-18', AVAL_ULTIMO_MES = '2026-11';
-var NOTA_PRES = 'Comparecimento, faltas e cancelamentos dependem do registro feito pelo atendimento da clínica na planilha de agendamentos.';
+var NOTA_PRES = 'Comparecimento, faltas e cancelamentos dependem do registro feito pelo atendimento da clínica na planilha (aba Agendamentos Kommo, coluna Comparecimento).';
 function avalVisivel(r){ return r.ini <= fimMes(AVAL_ULTIMO_MES); }
 function avalNota(){ return (AVAL_SINAL_DESDE ? 'A partir de ' + dmy(AVAL_SINAL_DESDE) : 'Desde novembro de 2026') + ', a avaliação de dermatologia deixou de ser cortesia e passou a exigir sinal. Este quadro acompanha as avaliações cortesia que ainda estavam marcadas.'; }
 var PAGS = [['geral','Visão geral'],['agenda','Agenda e consultas'],['midia','Mídia paga'],['instagram','Instagram'],['conteudo','Análise de conteúdo'],['kommo','Kommo'],['google','Google Ads'],['evolucao','Evolução 2026']];
@@ -579,8 +579,8 @@ function cardAvaliacoes(a, b, bRot){
     h('div', null, ['Comparecimento', h('b', {text:pr.v === null ? '—' : (pr.valida ? fmt(pr.v, 'pct') : 'em validação')})]),
     h('div', null, [bRot && bRot !== 'anterior' ? 'Comparec. em ' + bRot : 'Período anterior', h('b', {text:prb && prb.v !== null && prb.valida ? fmt(prb.v, 'pct') : '—'})])
   ]));
-  if (st.sem) c.appendChild(alerta(st.sem + (st.sem === 1 ? ' avaliação já passou da data e está' : ' avaliações já passaram da data e estão') + ' sem registro de presença no Kommo. Vale atualizar com a recepção.'));
-  c.appendChild(h('p', {class:'nota', text:'Serviço “Avaliação cortesia” de dermatologia no Kommo. Novas marcações: avaliações agendadas dentro do período, para qualquer data. Cancelaram e remarcaram aparecem separados na legenda.'}));
+  if (st.sem) c.appendChild(alerta(st.sem + (st.sem === 1 ? ' avaliação já passou da data e está' : ' avaliações já passaram da data e estão') + ' sem registro de presença na aba Agendamentos Kommo da planilha (coluna Comparecimento). Vale pedir a atualização ao atendimento.'));
+  c.appendChild(h('p', {class:'nota', text:'Serviço “Avaliação cortesia” de dermatologia, na aba Agendamentos Kommo da planilha. Novas marcações: avaliações agendadas dentro do período, para qualquer data. Cancelaram e remarcaram aparecem separados na legenda.'}));
   return c;
 }
 
@@ -1510,7 +1510,7 @@ function montar(){
   se.addEventListener('change', function(){ sel.esp = se.value; render(); });
 
   var fo = document.getElementById('fontes');
-  [['Agenda (Kommo)', dm(KOMMO_LIDO)], ['Anúncios (Meta)', dm(HOJE)], ['Instagram', D.instagram_ate ? dm(D.instagram_ate) : 'out/2026'], ['Kommo', D.kommo && D.kommo.lido_em ? dm(kFim() || D.kommo.lido_em) : '—'], ['Remarketing', dm((function(){ var l = rmkLista().filter(function(x){ return x.status !== 'prog'; }); return l.length ? l[0].data : D.remarketing.recentes[D.remarketing.recentes.length - 1].data; })())]]
+  [['Agenda (planilha)', dm(KOMMO_LIDO)], ['Anúncios (Meta)', dm(HOJE)], ['Instagram', D.instagram_ate ? dm(D.instagram_ate) : 'out/2026'], ['Kommo', D.kommo && D.kommo.lido_em ? dm(kFim() || D.kommo.lido_em) : '—'], ['Remarketing', dm((function(){ var l = rmkLista().filter(function(x){ return x.status !== 'prog'; }); return l.length ? l[0].data : D.remarketing.recentes[D.remarketing.recentes.length - 1].data; })())]]
     .forEach(function(x){ fo.appendChild(h('li', null, [h('span', {text:x[0]}), h('b', {text:x[1]})])); });
   document.getElementById('rodape-txt').textContent = 'Agenda lida em ' + dmy(KOMMO_LIDO) + ' · anúncios do Meta até ' + dmy(HOJE) + ' · Instagram e remarketing da planilha de acompanhamento.';
 }
