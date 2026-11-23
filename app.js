@@ -655,17 +655,17 @@ function pgAgenda(){
   var row = h('div', {class:'grid g-5-7 mt'});
   var cs = card('Situação das consultas do período', fmt(a.consTot) + ' consultas');
   barraStatus(cs, a.cons);
-  if (a.cons.sem) cs.appendChild(alerta(a.cons.sem + ' consultas já passaram da data e continuam como “aguardando” no Kommo. Até serem atualizadas, o comparecimento fica em validação.'));
+  if (a.cons.sem) cs.appendChild(alerta(a.cons.sem + ' consultas já passaram da data e continuam como “aguardando” na planilha. Até serem atualizadas, o comparecimento fica em validação.'));
   cs.appendChild(h('p', {class:'nota', text:NOTA_PRES}));
   row.appendChild(cs);
 
-  var cav = card('Avaliações cortesia por especialidade', 'Até ' + nomeMes(AVAL_ULTIMO_MES) + ' de 2026');
-  var ls = ESP_ORDEM.filter(function(e){ return espOk(e) && (totSt(a.aval[e]) || a.avalA[e]); }).map(function(e){
+  var cav = card('Avaliações cortesia · dermatologia', 'Até ' + nomeMes(AVAL_ULTIMO_MES) + ' de 2026');
+  var ls = ['derm'].filter(function(e){ return espOk(e) && (totSt(a.aval[e]) || a.avalA[e]); }).map(function(e){
     var x = a.aval[e], pr = presenca(x);
-    return {cel:[ESP_NOME[e], fmt(a.avalA[e]), fmt(totSt(x)), fmt(x.comp), fmt(x.falta), fmt(x.canc), fmt(x.remarc), pr.v === null ? '—' : (pr.valida ? fmt(pr.v, 'pct') : 'em validação')]};
+    return {cel:[fmt(a.avalA[e]), fmt(totSt(x)), fmt(x.comp), fmt(x.falta), fmt(x.canc), fmt(x.remarc), pr.v === null ? '—' : (pr.valida ? fmt(pr.v, 'pct') : 'em validação')]};
   });
-  if (ls.length) cav.appendChild(tabela(['Especialidade', 'Novas marcações', 'No período', 'Vieram', 'Faltaram', 'Cancelaram', 'Remarcaram', 'Comparec.'], ls));
-  else cav.appendChild(h('p', {class:'vazio', text:'Nenhuma avaliação no período.'}));
+  if (ls.length) cav.appendChild(tabela(['Novas marcações', 'No período', 'Vieram', 'Faltaram', 'Cancelaram', 'Remarcaram', 'Comparec.'], ls));
+  else cav.appendChild(h('p', {class:'vazio', text:espOk('derm') ? 'Nenhuma avaliação de dermatologia no período.' : 'O filtro de especialidade atual não inclui dermatologia.'}));
   if (avalVisivel(A)){ cav.appendChild(h('p', {class:'nota', text:avalNota()})); row.appendChild(cav); } else row.className = 'mt';
   f.appendChild(row);
 
