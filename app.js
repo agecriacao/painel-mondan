@@ -1090,13 +1090,21 @@ function kWhatsapp(f, a, b, bRot, ini, fim){
 var CSUB = [['anuncios','Criativos dos anúncios'],['organico','Publicações orgânicas']];
 var CORD = {anuncios:'invest', organico:'eng'};
 function crMeses(ini, fim){ var C = D.criativos; if (!C || !C.meses) return []; return meses(ini, fim).filter(function(m){ return C.meses[m]; }); }
+// Mesmo criativo reenviado em outro conjunto ganha outro creative_id na Meta: agrupa pelo nome do anúncio
+function crChave(ad){
+  var n = String(ad.nome_meta || '').replace(/\s*[—–-]\s*c[óo]pia\s*$/i, '').replace(/[_\s-]*\d{1,2}\/\d{1,2}(\/\d{2,4})?\s*$/, '');
+  n = n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9#]+/g, '');
+  return n ? (ad.frente || '') + '|' + n : (ad.criativo || null);
+}
 function crAgg(ini, fim){
   var C = D.criativos, por = {}, ms = crMeses(ini, fim);
   ms.forEach(function(m){
     Object.keys(C.meses[m]).forEach(function(id){
-      var v = C.meses[m][id], ad = C.ads[id] || {}, k = ad.criativo || id;
+      var v = C.meses[m][id], ad = C.ads[id] || {}, k = crChave(ad) || id;
       var LK = (C.links || {})[ad.criativo] || {};
-      var o = por[k] = por[k] || {k:k, nome:ad.titulo_ig || ad.nome, link:ad.link || LK.ig || null, drive:LK.f === 'drive' ? LK : null, ad1:id, tipo:ad.tipo, frentes:{}, ads:{}, lead:false, inv:0, imp:0, cli:0, ini:0, v3:0, thru:0, p25:0, p50:0, p75:0, p100:0, conv:0, tempo:0, rk:null, rkInv:-1};
+      var o = por[k] = por[k] || {k:k, nome:ad.titulo_ig || ad.nome, link:null, drive:null, ad1:id, tipo:ad.tipo, frentes:{}, ads:{}, lead:false, inv:0, imp:0, cli:0, ini:0, v3:0, thru:0, p25:0, p50:0, p75:0, p100:0, conv:0, tempo:0, rk:null, rkInv:-1};
+      if (!o.link && !o.drive){ if (LK.f === 'drive') o.drive = LK; else if (ad.link || LK.ig) o.link = ad.link || LK.ig; }
+      o.conj = o.conj || {}; if (ad.conjunto) o.conj[ad.conjunto] = 1;
       o.frentes[ad.frente || 'Outras'] = 1; o.ads[id] = 1; if (/\[LEAD\]_\[WHATSAPP\]/i.test(ad.campanha || '')) o.lead = true;
       o.inv += v[0]; o.imp += v[1]; o.cli += v[3]; o.ini += v[4]; o.v3 += v[5]; o.thru += v[6]; o.p25 += v[7]; o.p50 += v[8]; o.p75 += v[9]; o.p100 += v[10]; o.conv += v[12]; o.tempo += (v[11] || 0) * v[4];
       if ((v[13] || v[14] || v[15]) && v[0] > o.rkInv){ o.rk = [v[13], v[14], v[15]]; o.rkInv = v[0]; }
@@ -1172,7 +1180,7 @@ function cAnuncios(f, M){
         : h('a', {class:'lk', href:'https://www.facebook.com/adsmanager/manage/ads/edit?act=1158205365932274&selected_ad_ids=' + o.ad1, target:'_blank', rel:'noopener noreferrer', title:'Arquivo não localizado no Drive: abre a prévia no Gerenciador de Anúncios (precisa de acesso à conta)'}, [o.nome, h('span', {class:'ext', text:' ↗ Meta'})]);
       var chip = function(v, ref, maior, txt){ var cl = selo(v, ref, maior); return cl ? h('span', {class:'cchip ' + cl, text:txt}) : txt; };
       var rk = o.rk && o.rk[0] ? h('span', {class:'rk rk-' + o.rk[0], text:RK_TXT[o.rk[0]]}) : '—';
-      return {cel:[h('span', {class:'crn'}, [nome, h('small', {text:fr + (o.video ? ' · vídeo' : (o.tipo === 'SHARE' ? ' · carrossel ou imagem' : ''))})]),
+      return {cel:[h('span', {class:'crn'}, [nome, h('small', {text:fr + (o.video ? ' · vídeo' : (o.tipo === 'SHARE' ? ' · carrossel ou imagem' : '')) + (Object.keys(o.conj || {}).length > 1 ? ' · ' + Object.keys(o.conj).length + ' conjuntos' : '')})]),
         fmt(o.inv, 'brl0'), chip(o.ctr, T.ctr, true, pct1(o.ctr)), o.video ? chip(o.hook, T.hook, true, pct1(o.hook)) : '—', o.video ? chip(o.hold, T.hold, true, pct1(o.hold)) : '—',
         o.video ? pct1(o.ret75) : '—', fmt(o.conv), o.cpc ? chip(o.cpc, T.cpc, false, fmt(o.cpc, 'brl2')) : h('span', {class:'mut', title:o.lead ? 'Sem conversas no período' : 'Campanha sem objetivo de conversa', text:'—'}), rk]};
     }), null, {esq:[0]}));
