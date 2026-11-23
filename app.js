@@ -1096,6 +1096,12 @@ function crChave(ad){
   n = n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9#]+/g, '');
   return n ? (ad.frente || '') + '|' + n : (ad.criativo || null);
 }
+// Nome curto do conjunto: [SÃO PAULO]_[CAPILAR HOMEM]_[25-55] → São Paulo · Capilar homem · 25-55
+function nomeConj(c){
+  var p = String(c || '').replace(/\s*[—–-]\s*c[óo]pia\s*$/i, '').match(/\[([^\]]+)\]/g);
+  if (!p) return String(c || '');
+  return p.map(function(x){ x = x.slice(1, -1).trim().toLowerCase(); return x.charAt(0).toUpperCase() + x.slice(1); }).filter(function(x){ return !/^(instagram|whatsapp)$/i.test(x); }).join(' · ');
+}
 function crAgg(ini, fim){
   var C = D.criativos, por = {}, ms = crMeses(ini, fim);
   ms.forEach(function(m){
@@ -1104,18 +1110,25 @@ function crAgg(ini, fim){
       var LK = (C.links || {})[ad.criativo] || {};
       var o = por[k] = por[k] || {k:k, nome:ad.titulo_ig || ad.nome, link:null, drive:null, ad1:id, tipo:ad.tipo, frentes:{}, ads:{}, lead:false, inv:0, imp:0, cli:0, ini:0, v3:0, thru:0, p25:0, p50:0, p75:0, p100:0, conv:0, tempo:0, rk:null, rkInv:-1};
       if (!o.link && !o.drive){ if (LK.f === 'drive') o.drive = LK; else if (ad.link || LK.ig) o.link = ad.link || LK.ig; }
-      o.conj = o.conj || {}; if (ad.conjunto) o.conj[ad.conjunto] = 1;
-      o.frentes[ad.frente || 'Outras'] = 1; o.ads[id] = 1; if (/\[LEAD\]_\[WHATSAPP\]/i.test(ad.campanha || '')) o.lead = true;
-      o.inv += v[0]; o.imp += v[1]; o.cli += v[3]; o.ini += v[4]; o.v3 += v[5]; o.thru += v[6]; o.p25 += v[7]; o.p50 += v[8]; o.p75 += v[9]; o.p100 += v[10]; o.conv += v[12]; o.tempo += (v[11] || 0) * v[4];
-      if ((v[13] || v[14] || v[15]) && v[0] > o.rkInv){ o.rk = [v[13], v[14], v[15]]; o.rkInv = v[0]; }
+      var cj = ad.conjunto || 'Sem conjunto';
+      o.conj = o.conj || {};
+      var sb = o.conj[cj] = o.conj[cj] || {k:k + '|' + cj, nome:nomeConj(cj), sub:true, tipo:ad.tipo, frentes:{}, ads:{}, lead:false, inv:0, imp:0, cli:0, ini:0, v3:0, thru:0, p25:0, p50:0, p75:0, p100:0, conv:0, tempo:0, rk:null, rkInv:-1};
+      [o, sb].forEach(function(x){
+        x.frentes[ad.frente || 'Outras'] = 1; x.ads[id] = 1; if (/\[LEAD\]_\[WHATSAPP\]/i.test(ad.campanha || '')) x.lead = true;
+        x.inv += v[0]; x.imp += v[1]; x.cli += v[3]; x.ini += v[4]; x.v3 += v[5]; x.thru += v[6]; x.p25 += v[7]; x.p50 += v[8]; x.p75 += v[9]; x.p100 += v[10]; x.conv += v[12]; x.tempo += (v[11] || 0) * v[4];
+        if ((v[13] || v[14] || v[15]) && v[0] > x.rkInv){ x.rk = [v[13], v[14], v[15]]; x.rkInv = v[0]; }
+      });
     });
   });
-  var L = Object.keys(por).map(function(k){ var o = por[k];
+  function deriva(o){
     o.video = o.ini > 0; o.ctr = o.imp ? o.cli / o.imp * 100 : null;
     o.hook = o.video && o.imp && o.v3 ? o.v3 / o.imp * 100 : null;
     o.hold = o.video && o.v3 ? o.thru / o.v3 * 100 : null;
     o.ret75 = o.video && o.ini ? o.p75 / o.ini * 100 : null;
     o.cpc = o.lead && o.conv ? o.inv / o.conv : null; o.cpm = o.imp ? o.inv / o.imp * 1000 : null; o.tm = o.ini ? o.tempo / o.ini : null;
+    return o; }
+  var L = Object.keys(por).map(function(k){ var o = deriva(por[k]);
+    o.subs = Object.keys(o.conj || {}).map(function(c){ return deriva(o.conj[c]); }).sort(function(a, b){ return b.inv - a.inv; });
     return o; });
   return {lista:L, meses:ms};
 }
@@ -1166,21 +1179,24 @@ function cAnuncios(f, M){
   f.appendChild(chips);
   f.appendChild(g);
 
-  var c = card('Criativos', 'Cada criativo somado em todos os conjuntos em que rodou · verde e vermelho comparam com a média do período');
+  var c = card('Criativos', 'Criativo que rodou em mais de um conjunto: total na primeira linha e cada conjunto logo abaixo · verde e vermelho comparam com a média do período');
   var OPC = [['invest','Investimento'],['ctr','CTR'],['hook','Hook rate'],['hold','Hold rate'],['cpc','Custo por conversa'],['conv','Conversas']];
   var corpo = h('div');
   function desenha(){
     corpo.textContent = '';
     var k = CORD.anuncios, val = function(o){ return k === 'invest' ? o.inv : k === 'conv' ? o.conv : o[k]; };
     var lst = L.slice().sort(function(a, b){ var x = val(a), y = val(b); if (x === null || x === undefined) return 1; if (y === null || y === undefined) return -1; return k === 'cpc' ? x - y : y - x; });
-    corpo.appendChild(tabela(['Criativo', 'Investimento', 'CTR', 'Hook', 'Hold', 'Retenção 75%', 'Conversas', 'Custo/conversa', 'Qualidade (Meta)'], lst.map(function(o){
+    var linhas = [];
+    lst.forEach(function(o){ linhas.push(o); if (o.subs && o.subs.length > 1) o.subs.forEach(function(sb){ linhas.push(sb); }); });
+    corpo.appendChild(tabela(['Criativo', 'Investimento', 'CTR', 'Hook', 'Hold', 'Retenção 75%', 'Conversas', 'Custo/conversa', 'Qualidade (Meta)'], linhas.map(function(o){
       var fr = Object.keys(o.frentes).join(', ');
       var nome = o.link ? h('a', {class:'lk', href:o.link, target:'_blank', rel:'noopener noreferrer', title:'Abrir a publicação no Instagram'}, [o.nome, h('span', {class:'ext', text:' ↗'})])
         : o.drive ? h('a', {class:'lk', href:o.drive.u, target:'_blank', rel:'noopener noreferrer', title:'Abrir o arquivo no Drive: ' + o.drive.n + (o.drive.prov ? ' (associado pela numeração do arquivo)' : '')}, [o.nome, h('span', {class:'ext', text:' ↗ Drive'})])
         : h('a', {class:'lk', href:'https://www.facebook.com/adsmanager/manage/ads/edit?act=1158205365932274&selected_ad_ids=' + o.ad1, target:'_blank', rel:'noopener noreferrer', title:'Arquivo não localizado no Drive: abre a prévia no Gerenciador de Anúncios (precisa de acesso à conta)'}, [o.nome, h('span', {class:'ext', text:' ↗ Meta'})]);
       var chip = function(v, ref, maior, txt){ var cl = selo(v, ref, maior); return cl ? h('span', {class:'cchip ' + cl, text:txt}) : txt; };
       var rk = o.rk && o.rk[0] ? h('span', {class:'rk rk-' + o.rk[0], text:RK_TXT[o.rk[0]]}) : '—';
-      return {cel:[h('span', {class:'crn'}, [nome, h('small', {text:fr + (o.video ? ' · vídeo' : (o.tipo === 'SHARE' ? ' · carrossel ou imagem' : '')) + (Object.keys(o.conj || {}).length > 1 ? ' · ' + Object.keys(o.conj).length + ' conjuntos' : '')})]),
+      if (o.sub) nome = h('span', {class:'crsubn', title:'Conjunto de anúncios'}, [h('span', {class:'crseta', 'aria-hidden':'true', text:'↳ '}), o.nome]);
+      return {cls:o.sub ? 'crsub' : ((o.subs || []).length > 1 ? 'crpai' : ''), cel:[h('span', {class:'crn'}, [nome, o.sub ? null : h('small', {text:fr + (o.video ? ' · vídeo' : (o.tipo === 'SHARE' ? ' · carrossel ou imagem' : '')) + ((o.subs || []).length > 1 ? ' · total de ' + o.subs.length + ' conjuntos, detalhe abaixo' : '')})]),
         fmt(o.inv, 'brl0'), chip(o.ctr, T.ctr, true, pct1(o.ctr)), o.video ? chip(o.hook, T.hook, true, pct1(o.hook)) : '—', o.video ? chip(o.hold, T.hold, true, pct1(o.hold)) : '—',
         o.video ? pct1(o.ret75) : '—', fmt(o.conv), o.cpc ? chip(o.cpc, T.cpc, false, fmt(o.cpc, 'brl2')) : h('span', {class:'mut', title:o.lead ? 'Sem conversas no período' : 'Campanha sem objetivo de conversa', text:'—'}), rk]};
     }), null, {esq:[0]}));

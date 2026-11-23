@@ -397,3 +397,10 @@ td.mut,tr.mut td{color:var(--ink-3)}
 .crlegenda{margin:0;padding-left:18px;font-size:13px;line-height:1.55;color:var(--ink-2)}
 .crlegenda li{margin:4px 0}
 .crfr{margin:-4px 0 14px}
+
+/* Criativo em mais de um conjunto: linha total + linhas por conjunto */
+tr.crpai td{border-bottom-color:transparent}
+tr.crsub td{background:rgba(222,216,197,.22);padding-top:7px;padding-bottom:7px;font-size:.92em}
+tr.crsub td.esq{padding-left:26px}
+.crsubn{color:var(--txt2,#6b5a52)}
+.crseta{color:#9D7B3E}
