@@ -1095,7 +1095,8 @@ function crAgg(ini, fim){
   ms.forEach(function(m){
     Object.keys(C.meses[m]).forEach(function(id){
       var v = C.meses[m][id], ad = C.ads[id] || {}, k = ad.criativo || id;
-      var o = por[k] = por[k] || {k:k, nome:ad.titulo_ig || ad.nome, link:ad.link, tipo:ad.tipo, frentes:{}, ads:{}, lead:false, inv:0, imp:0, cli:0, ini:0, v3:0, thru:0, p25:0, p50:0, p75:0, p100:0, conv:0, tempo:0, rk:null, rkInv:-1};
+      var LK = (C.links || {})[ad.criativo] || {};
+      var o = por[k] = por[k] || {k:k, nome:ad.titulo_ig || ad.nome, link:ad.link || LK.ig || null, drive:LK.f === 'drive' ? LK : null, ad1:id, tipo:ad.tipo, frentes:{}, ads:{}, lead:false, inv:0, imp:0, cli:0, ini:0, v3:0, thru:0, p25:0, p50:0, p75:0, p100:0, conv:0, tempo:0, rk:null, rkInv:-1};
       o.frentes[ad.frente || 'Outras'] = 1; o.ads[id] = 1; if (/\[LEAD\]_\[WHATSAPP\]/i.test(ad.campanha || '')) o.lead = true;
       o.inv += v[0]; o.imp += v[1]; o.cli += v[3]; o.ini += v[4]; o.v3 += v[5]; o.thru += v[6]; o.p25 += v[7]; o.p50 += v[8]; o.p75 += v[9]; o.p100 += v[10]; o.conv += v[12]; o.tempo += (v[11] || 0) * v[4];
       if ((v[13] || v[14] || v[15]) && v[0] > o.rkInv){ o.rk = [v[13], v[14], v[15]]; o.rkInv = v[0]; }
@@ -1166,7 +1167,9 @@ function cAnuncios(f, M){
     var lst = L.slice().sort(function(a, b){ var x = val(a), y = val(b); if (x === null || x === undefined) return 1; if (y === null || y === undefined) return -1; return k === 'cpc' ? x - y : y - x; });
     corpo.appendChild(tabela(['Criativo', 'Investimento', 'CTR', 'Hook', 'Hold', 'Retenção 75%', 'Conversas', 'Custo/conversa', 'Qualidade (Meta)'], lst.map(function(o){
       var fr = Object.keys(o.frentes).join(', ');
-      var nome = o.link ? h('a', {class:'lk', href:o.link, target:'_blank', rel:'noopener noreferrer', title:'Abrir a publicação no Instagram'}, [o.nome, h('span', {class:'ext', text:' ↗'})]) : h('span', {text:o.nome});
+      var nome = o.link ? h('a', {class:'lk', href:o.link, target:'_blank', rel:'noopener noreferrer', title:'Abrir a publicação no Instagram'}, [o.nome, h('span', {class:'ext', text:' ↗'})])
+        : o.drive ? h('a', {class:'lk', href:o.drive.u, target:'_blank', rel:'noopener noreferrer', title:'Abrir o arquivo no Drive: ' + o.drive.n + (o.drive.prov ? ' (associado pela numeração do arquivo)' : '')}, [o.nome, h('span', {class:'ext', text:' ↗ Drive'})])
+        : h('a', {class:'lk', href:'https://www.facebook.com/adsmanager/manage/ads/edit?act=1158205365932274&selected_ad_ids=' + o.ad1, target:'_blank', rel:'noopener noreferrer', title:'Arquivo não localizado no Drive: abre a prévia no Gerenciador de Anúncios (precisa de acesso à conta)'}, [o.nome, h('span', {class:'ext', text:' ↗ Meta'})]);
       var chip = function(v, ref, maior, txt){ var cl = selo(v, ref, maior); return cl ? h('span', {class:'cchip ' + cl, text:txt}) : txt; };
       var rk = o.rk && o.rk[0] ? h('span', {class:'rk rk-' + o.rk[0], text:RK_TXT[o.rk[0]]}) : '—';
       return {cel:[h('span', {class:'crn'}, [nome, h('small', {text:fr + (o.video ? ' · vídeo' : (o.tipo === 'SHARE' ? ' · carrossel ou imagem' : ''))})]),
@@ -1180,6 +1183,7 @@ function cAnuncios(f, M){
   f.appendChild(h('div', {class:'mt'}, [c]));
 
   var ex = card('Como ler', null, [h('ul', {class:'crlegenda'}, [
+    h('li', null, [h('b', {text:'Ver o criativo: '}), 'clique no nome. ↗ abre a publicação no Instagram; ↗ Drive abre o arquivo final na pasta da Mondän; ↗ Meta abre a prévia no Gerenciador de Anúncios (quando o arquivo não foi localizado no Drive).']),
     h('li', null, [h('b', {text:'CTR do link: '}), 'de cada 100 vezes que o anúncio apareceu, quantas viraram clique para conversar.']),
     h('li', null, [h('b', {text:'Hook rate: '}), 'quanto o começo do vídeo segura a atenção: pessoas que pararam pelo menos 3 segundos. Abaixo de 20% costuma indicar abertura fraca.']),
     h('li', null, [h('b', {text:'Hold rate: '}), 'de quem parou, quantos ficaram até 15 segundos ou até o fim. Mostra se o conteúdo sustenta o interesse.']),
