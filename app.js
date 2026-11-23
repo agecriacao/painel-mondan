@@ -114,11 +114,11 @@ function tipHide(){ if (TIP) TIP.style.opacity = 0; }
    Dados e estado
    ========================================================= */
 var D, HOJE, KOMMO_LIDO, KOMMO_INI = '2026-07-01', MESES_DISP = [];
-var sel = {modo:'mes', mes:null, cmp:null, preset:'semana_passada', ini:null, fim:null, cmpOn:true, esp:'todas', pag:'geral'};
+var sel = {modo:'periodo', mes:null, cmp:null, preset:'este_mes', ini:null, fim:null, cmpOn:true, esp:'todas', pag:'geral'};
 
 var ESP_NOME = {derm:'Dermatologia', cap:'Capilar', blef:'Blefaroplastia', gine:'Ginecologia', endo:'Endocrinologia', proc:'Proctologia', uro:'Urologia', vasc:'Vascular', outras:'Outras'};
 var ESP_ORDEM = ['derm','cap','blef','gine','endo','proc','uro','vasc','outras'];
-var FILTRO_ESP = [['todas','Todas'],['derm','Dermatologia'],['cap','Capilar'],['blef','Blefaroplastia'],['gine','Ginecologia'],['outras','Demais especialidades']];
+var FILTRO_ESP = [['todas','Todas as especialidades'],['derm','Dermatologia'],['cap','Capilar'],['blef','Blefaroplastia'],['gine','Ginecologia'],['outras','Demais especialidades']];
 var FILTRO_LISTA = {todas:null, derm:['derm'], cap:['cap'], blef:['blef'], gine:['gine'], outras:['endo','proc','uro','vasc','outras']};
 var ORI_NOME = {anuncio:'Anúncio Mondän', ig_medico:'Instagram do(a) médico(a)', ig_clinica:'Instagram da clínica', indicacao:'Indicação', remarketing:'Remarketing', nao_identificado:'Não identificado', outras:'Outras / sem origem'};
 var ST = [
@@ -135,11 +135,19 @@ var NOTA_PRES = 'Comparecimento, faltas e cancelamentos dependem do registro fei
 function avalVisivel(r){ return r.ini <= fimMes(AVAL_ULTIMO_MES); }
 function avalNota(){ return (AVAL_SINAL_DESDE ? 'A partir de ' + dmy(AVAL_SINAL_DESDE) : 'Desde novembro de 2026') + ', a avaliação de dermatologia deixou de ser cortesia e passou a exigir sinal. Este quadro acompanha as avaliações cortesia que ainda estavam marcadas.'; }
 var PAGS = [['geral','Visão geral'],['agenda','Agenda e consultas'],['midia','Mídia paga'],['instagram','Instagram'],['kommo','Kommo'],['google','Google Ads'],['evolucao','Evolução 2026']];
-var PRESETS = [['semana_passada','Semana passada'],['7d','7 dias'],['30d','30 dias'],['este_mes','Este mês'],['mes_passado','Mês passado']];
+var PRESETS = [['este_mes','Este mês'],['mes_passado','Mês passado'],['semana_passada','Semana passada'],['7d','7 dias'],['30d','30 dias']];
 
 function espOk(e){ var l = FILTRO_LISTA[sel.esp]; return !l || l.indexOf(e) >= 0; }
 
 /* ---------- períodos ---------- */
+function usaMes(m){
+  sel.modo = 'periodo'; sel.cmpOn = true;
+  if (m === mesDe(HOJE)) sel.preset = 'este_mes';
+  else if (m === mesAnt(mesDe(HOJE))) sel.preset = 'mes_passado';
+  else sel.preset = 'custom';
+  var r = sel.preset === 'custom' ? [m + '-01', fimMes(m) > HOJE ? HOJE : fimMes(m)] : intervaloPreset(sel.preset);
+  sel.ini = r[0]; sel.fim = r[1];
+}
 function intervaloPreset(p){
   if (p === '7d') return [addD(HOJE, -6), HOJE];
   if (p === '30d') return [addD(HOJE, -29), HOJE];
@@ -154,6 +162,8 @@ function periodoA(){
     var m = sel.mes, f = fimMes(m), parcial = f > HOJE;
     return {ini:m + '-01', fim:f, ate:parcial ? HOJE : f, rot:cap(nomeMes(m)) + ' ' + m.slice(0, 4), mes:m, parcial:parcial};
   }
+  var mm = mesDe(sel.ini), inteiro = sel.ini === mm + '-01' && mesDe(sel.fim) === mm && (sel.fim === fimMes(mm) || sel.fim === HOJE);
+  if (inteiro){ var parc = sel.fim < fimMes(mm); return {ini:sel.ini, fim:sel.fim, ate:sel.fim, rot:cap(nomeMes(mm)) + ' ' + mm.slice(0, 4), mes:mm, parcial:parc, dias:ndias(sel.ini, sel.fim)}; }
   return {ini:sel.ini, fim:sel.fim, rot:rotPeriodo(sel.ini, sel.fim), dias:ndias(sel.ini, sel.fim)};
 }
 function periodoB(){
@@ -479,7 +489,7 @@ function cabecalho(titulo, A, B, extras){
   if (B) per.appendChild(document.createTextNode(' · comparado com ' + B.rot.toLowerCase().replace(/^(\d)/, '$1')));
   var tags = h('div', {class:'tags'});
   if (sel.esp !== 'todas') tags.appendChild(h('span', {class:'tag'}, [h('i'), 'Especialidade: ' + FILTRO_ESP.filter(function(x){ return x[0] === sel.esp; })[0][1]]));
-  if (A.parcial && sel.modo === 'mes' && B) tags.appendChild(h('span', {class:'tag', title:'Comparação com um mês fechado'}, [h('i'), 'Mês em andamento: volumes ainda vão crescer']));
+  if (A.parcial && A.mes && B && B.fim === fimMes(mesDe(B.ini))) tags.appendChild(h('span', {class:'tag', title:'Comparação com um mês fechado'}, [h('i'), 'Mês em andamento: volumes ainda vão crescer']));
   (extras || []).forEach(function(t){ if (t) tags.appendChild(h('span', {class:'tag aviso', text:t})); });
   return h('div', {class:'phead'}, [h('div', null, [h('h1', {text:titulo}), per]), tags]);
 }
@@ -1170,7 +1180,7 @@ function cardAnaliseMes(A){
   MESES_DISP.forEach(function(k){
     if (!AN.meses[k]) return;
     var b = h('button', {class:'mtab' + (k === m ? ' on' : ''), text:nomeMes(k).slice(0, 3)});
-    b.addEventListener('click', function(){ sel.modo = 'mes'; sel.mes = k; sel.cmp = mesAnt(k) >= MESES_DISP[0] ? mesAnt(k) : sel.cmp; render(); });
+    b.addEventListener('click', function(){ usaMes(k); render(); });
     tabs.appendChild(b);
   });
   c.appendChild(tabs);
@@ -1226,7 +1236,7 @@ function pgEvolucao(){
   defs.forEach(function(d){
     var c = card(d.t, null), vals = ser.map(function(p){ return d.v(ag(p), p); });
     colunas(c, ser.map(function(p, i){ return {l:p.l, t:p.t, v:vals[i], hl:hl(p), mes:p.mes}; }), {nome:d.t, tipo:d.tipo, rotulos:true, seletivo:true, semEixo:true, altura:150, marcaVazio:true,
-      clique:function(pt){ sel.modo = 'mes'; sel.mes = pt.mes; sel.cmp = mesAnt(pt.mes) >= MESES_DISP[0] ? mesAnt(pt.mes) : sel.cmp; render(); }});
+      clique:function(pt){ usaMes(pt.mes); render(); }});
     var l = d.t === 'Seguidores no Instagram' ? null : leitura(ser, vals, d.tipo, {volume:d.volume, menorMelhor:d.menor});
     if (d.t === 'Seguidores no Instagram'){
       var ok = vals.filter(function(v){ return v; }); if (ok.length > 1){ l = h('ul', {class:'leit'}, [h('li', null, [h('b', {text:'No ano: '}), '+' + fmt(ok[ok.length - 1] - ok[0]) + ' seguidores (de ' + fmt(ok[0]) + ' para ' + fmt(ok[ok.length - 1]) + '), média de ' + fmt((ok[ok.length - 1] - ok[0]) / (ok.length - 1)) + ' por mês.'])]); }
@@ -1265,10 +1275,6 @@ function render(){
 }
 function irPara(p){ sel.pag = p; render(); window.scrollTo({top:0}); }
 function syncFiltros(){
-  document.querySelectorAll('.seg button').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.modo === sel.modo ? 'true' : 'false'); });
-  document.getElementById('f-mes').hidden = sel.modo !== 'mes';
-  document.getElementById('f-per').hidden = sel.modo !== 'periodo';
-  document.getElementById('sel-mes').value = sel.mes; document.getElementById('sel-cmp').value = sel.cmp;
   document.getElementById('dt-ini').value = sel.ini || ''; document.getElementById('dt-fim').value = sel.fim || '';
   document.getElementById('chk-cmp').checked = sel.cmpOn;
   document.getElementById('sel-esp').value = sel.esp;
@@ -1300,8 +1306,7 @@ function lerUrl(){
       else if (intervaloPreset(p)){ sel.preset = p; var r = intervaloPreset(p); sel.ini = r[0]; sel.fim = r[1]; }
       sel.cmpOn = q.get('cmpOn') !== '0';
     }
-    if (D.meses[q.get('mes')]) sel.mes = q.get('mes');
-    if (D.meses[q.get('cmp')]) sel.cmp = q.get('cmp');
+    if (q.get('modo') === 'mes' && D.meses[q.get('mes')]) usaMes(q.get('mes'));  // links antigos
     if (FILTRO_LISTA.hasOwnProperty(q.get('esp'))) sel.esp = q.get('esp');
   } catch (e) {}
 }
@@ -1311,20 +1316,6 @@ function montar(){
     [nav, mnav].forEach(function(host){
       var b = h('button', {type:'button', 'data-pag':p[0], onclick:function(){ irPara(p[0]); }}, [icone(p[0]), p[1]]);
       host.appendChild(b);
-    });
-  });
-  var sm = document.getElementById('sel-mes'), sc = document.getElementById('sel-cmp');
-  MESES_DISP.slice().reverse().forEach(function(m){
-    var info = D.meses[m], t = cap(nomeMes(m)) + ' ' + m.slice(0, 4) + (info.parcial ? ' · em andamento' : '');
-    sm.appendChild(h('option', {value:m, text:t})); sc.appendChild(h('option', {value:m, text:t}));
-  });
-  sm.addEventListener('change', function(){ sel.mes = sm.value; sel.cmp = mesAnt(sel.mes) >= MESES_DISP[0] ? mesAnt(sel.mes) : sel.cmp; render(); });
-  sc.addEventListener('change', function(){ sel.cmp = sc.value; render(); });
-  document.querySelectorAll('.seg button').forEach(function(b){
-    b.addEventListener('click', function(){
-      sel.modo = b.dataset.modo;
-      if (sel.modo === 'periodo' && !sel.ini){ var r = intervaloPreset(sel.preset); sel.ini = r[0]; sel.fim = r[1]; }
-      render();
     });
   });
   var pr = document.getElementById('per-seg');

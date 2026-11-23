@@ -36,19 +36,7 @@
     <nav class="mnav" id="mnav" aria-label="Páginas"></nav>
 
     <div class="filtros" id="filtros" role="region" aria-label="Filtros">
-      <div class="fgrp">
-        <div class="seg" role="tablist" aria-label="Tipo de período">
-          <button type="button" role="tab" data-modo="mes" aria-selected="true">Mês</button>
-          <button type="button" role="tab" data-modo="periodo" aria-selected="false">Período</button>
-        </div>
-      </div>
-
-      <div class="fgrp" id="f-mes">
-        <label class="fld"><span>Mês</span><select id="sel-mes"></select></label>
-        <label class="fld"><span>Comparar com</span><select id="sel-cmp"></select></label>
-      </div>
-
-      <div class="fgrp per-bar" id="f-per" hidden>
+      <div class="fgrp per-bar" id="f-per">
         <div class="per-seg" id="per-seg" role="tablist" aria-label="Período"></div>
         <label class="per-dt"><input type="date" id="dt-ini" aria-label="Data inicial"></label>
         <span class="per-a">a</span>
