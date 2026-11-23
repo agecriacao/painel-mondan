@@ -735,6 +735,11 @@ function mesInstagram(){
   while (!temIg(m) && m > MESES_DISP[0]) m = mesAnt(m);
   return {m:m, pedido:pedido};
 }
+function MES_DE_ROTULO(r){
+  var NM = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  var p = String(r).toLowerCase().split(' '), i = NM.indexOf(p[0]);
+  return i < 0 || !p[1] ? null : p[1] + '-' + String(i + 1).padStart(2, '0');
+}
 function pgInstagram(){
   var A = periodoA(), mi = mesInstagram(), m = mi.m, mb = (sel.modo === 'mes' && mi.m === mi.pedido) ? sel.cmp : mesAnt(m);
   var x = D.meses[m].instagram, y = D.meses[mb] ? D.meses[mb].instagram : {};
@@ -753,20 +758,26 @@ function pgInstagram(){
   f.appendChild(g);
   if (faltam) f.appendChild(h('div', {class:'mt'}, [card('Métricas de ' + nomeMes(m) + ' ainda não fechadas', null, [h('p', {class:'vazio', text:'O Instagram libera os números do mês no fechamento. Até lá, aparece só o total de seguidores.'})])]));
 
-  var c = D.conteudo, ref = c.referencia;
+  var c = D.conteudo, ref = c.referencia, nm = nomeMes(m);
+  var refMes = c.referencia ? MES_DE_ROTULO(c.referencia) : null;
+  var topMes = (c.tops_mes && c.tops_mes[m]) || (m === refMes ? c.top_mes : null) || [];
+  var formatos = (c.formatos_mes && c.formatos_mes[m]) || (m === refMes ? c.formatos : null) || [];
   function lista(itens){
+    if (!itens.length) return h('p', {class:'vazio', text:'Nenhuma publicação com dados neste mês.'});
     return h('ol', {class:'rank'}, itens.map(function(i, n){
-      return h('li', null, [h('div', {class:'n', text:String(n + 1)}), h('div', null, [h('div', {class:'t', text:i.titulo}), h('div', {class:'m', text:dm(i.data) + ' · ' + i.especialidade + ' · ' + i.formato})]),
-        h('div', {class:'v', title:'interações + seguidores', text:fmt(i.interacoes)})]);
+      var meta = [dm(i.data), i.especialidade, i.formato].filter(Boolean).join(' · ');
+      var tit = i.link ? h('a', {class:'t lk', href:i.link, target:'_blank', rel:'noopener noreferrer', title:'Abrir no Instagram'}, [i.titulo, h('span', {class:'ext', 'aria-hidden':'true', text:' ↗'})]) : h('div', {class:'t', text:i.titulo});
+      return h('li', null, [h('div', {class:'n', text:String(n + 1)}), h('div', null, [tit, h('div', {class:'m', text:meta})]),
+        h('div', {class:'v', title:'interações + seguidores gerados', text:fmt((i.interacoes || 0) + (i.seguidores || 0))})]);
     }));
   }
   var row = h('div', {class:'grid g2 mt'});
-  row.appendChild(card('Melhores conteúdos de ' + ref.split(' ')[0].toLowerCase(), 'Ordem por interações e seguidores gerados', [lista(c.top_mes)]));
-  row.appendChild(card('Melhores do ano até agora', 'Mesmo critério', [lista(c.top_ano)]));
+  row.appendChild(card('Melhores conteúdos de ' + nm, 'Interações + seguidores gerados · toque no título para abrir no Instagram', [lista(topMes)]));
+  row.appendChild(card('Melhores do ano até agora', 'Mesmo critério', [lista(c.top_ano || [])]));
   f.appendChild(row);
-  f.appendChild(h('div', {class:'mt'}, [card('Publicações por formato · ' + ref.toLowerCase(), null, [tabela(['Formato', 'Publicações', 'Interações', 'Seguidores novos', 'Visualizações'],
-    c.formatos.map(function(x){ return {cel:[x.formato, fmt(x.publicacoes), fmt(x.interacoes), fmt(x.seguidores), fmt(x.visualizacoes)]}; }))])]));
-  if (c.aprendizado) f.appendChild(h('div', {class:'callout mt'}, [h('b', {text:'O que o mês ensina'}), h('span', {text:c.aprendizado})]));
+  if (formatos.length) f.appendChild(h('div', {class:'mt'}, [card('Publicações por formato · ' + nm + ' ' + m.slice(0, 4), null, [tabela(['Formato', 'Publicações', 'Interações', 'Seguidores novos', 'Visualizações'],
+    formatos.map(function(x){ return {cel:[x.formato, fmt(x.publicacoes), fmt(x.interacoes), fmt(x.seguidores), fmt(x.visualizacoes)]}; }))])]));
+  if (c.aprendizado && m === refMes) f.appendChild(h('div', {class:'callout mt'}, [h('b', {text:'O que o mês ensina'}), h('span', {text:c.aprendizado})]));
   return f;
 }
 

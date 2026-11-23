@@ -184,6 +184,9 @@ td.mut,tr.mut td{color:var(--ink-3)}
 .rank li:last-child{border-bottom:0}
 .rank .n{font-weight:600;color:var(--dourado);font-size:15px}
 .rank .t{font-weight:500;font-size:13px;line-height:1.35}
+.rank a.lk{display:block;color:inherit;text-decoration:none}
+.rank a.lk:hover{color:var(--dourado);text-decoration:underline;text-underline-offset:2px}
+.rank a.lk .ext{color:var(--dourado);font-size:11px;white-space:nowrap}
 .rank .m{font-size:11.5px;color:var(--ink-3);margin-top:2px}
 .rank .v{font-weight:600;font-variant-numeric:tabular-nums}
 
