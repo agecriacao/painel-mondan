@@ -404,3 +404,10 @@ tr.crsub td{background:rgba(222,216,197,.22);padding-top:7px;padding-bottom:7px;
 tr.crsub td.esq{padding-left:26px}
 .crsubn{color:var(--txt2,#6b5a52)}
 .crseta{color:#9D7B3E}
+
+.rmk-campos2{grid-template-columns:minmax(160px,1fr) minmax(220px,2fr);margin-top:10px}
+.rmk-cr{white-space:nowrap;font-weight:600;color:#9D7B3E;text-decoration:none}
+.rmk-cr:hover{text-decoration:underline}
+.rmk-cr small{font-weight:400;color:var(--ink-3)}
+.rmk-sem{font-size:11.5px;color:var(--ink-3)}
+.rmk-todos{margin-top:10px}

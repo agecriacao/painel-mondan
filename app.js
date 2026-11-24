@@ -824,9 +824,31 @@ function rmkInit(){
 function num(v){ return v === null || v === undefined || v === '' || isNaN(+v) ? null : +v; }
 function rmkLista(){
   var base = RMK.docs ? RMK.docs : (D.remarketing.disparos && D.remarketing.disparos.length) ? D.remarketing.disparos : D.remarketing.recentes.map(function(x, i){ return {id:'p' + i, data:x.data, especialidade:x.especialidade, contatos:x.contatos, respostas:x.em_andamento ? null : x.respostas, agend:x.em_andamento ? null : x.agend}; });
-  var hoje = hojeIso();
-  return base.map(function(x){ var y = Object.assign({}, x); y.status = x.data > hoje ? 'prog' : (x.respostas === null ? 'and' : 'ok'); return y; })
-    .sort(function(a, b){ return a.data < b.data ? 1 : a.data > b.data ? -1 : 0; });
+  var hoje = hojeIso(), PL = D.remarketing.planilha || [];
+  var out = base.map(function(x){ var y = Object.assign({}, x); y.status = x.data > hoje ? 'prog' : (x.respostas === null ? 'and' : 'ok');
+    var p = rmkPlanilha(y, PL); if (p){ if (!y.tema) y.tema = p.tema; if (!y.criativo) y.criativo = p.criativo; if (!y.criativo_obs) y.criativo_obs = p.criativo_obs; }
+    return y; });
+  /* histórico anterior ao primeiro disparo cadastrado: vem da aba Campanhas_RMKT */
+  var ini = out.reduce(function(m, x){ return !m || x.data < m ? x.data : m; }, null);
+  PL.forEach(function(p, i){ if (ini && p.data < ini) out.push(Object.assign({id:'pl' + i, hist:true, status:'ok'}, p)); });
+  return out.sort(function(a, b){ return a.data < b.data ? 1 : a.data > b.data ? -1 : 0; });
+}
+/* liga o disparo à linha da planilha do mesmo dia e especialidade; se houver mais de uma, usa o nome do disparo */
+function rmkNorm(t){ return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+function rmkPlanilha(x, PL){
+  var c = PL.filter(function(p){ return p.data === x.data && p.especialidade === x.especialidade; });
+  if (c.length < 2) return c[0] || null;
+  var n = rmkNorm(x.nome) + ' ' + rmkNorm(x.tema), melhor = null, pts = 0;
+  c.forEach(function(p){ var k = rmkNorm(p.tema).split(/[^a-z0-9]+/).filter(function(w){ return w.length > 3 && n.indexOf(w) >= 0; }).length; if (k > pts){ pts = k; melhor = p; } else if (k === pts) melhor = null; });
+  return melhor;
+}
+function rmkLinkCriativo(x){
+  if (x.criativo){
+    var u = x.criativo, tipo = /trello\.com/.test(u) ? 'Trello' : (/drive\/(u\/\d\/)?folders/.test(u) ? 'pasta do Drive' : (/instagram\.com/.test(u) ? 'Instagram' : 'Drive'));
+    return h('a', {class:'lk rmk-cr', href:u, target:'_blank', rel:'noopener noreferrer', title:'Abrir o criativo enviado (' + tipo + ')'}, ['Ver ', h('span', {class:'ext', text:'↗'}), tipo !== 'Drive' ? h('small', {text:' ' + tipo}) : null]);
+  }
+  if (x.criativo_obs) return h('span', {class:'rmk-sem', title:'Anotado na planilha, sem link', text:x.criativo_obs});
+  return h('span', {class:'rmk-sem', text:x.status === 'prog' ? 'falta link' : 'sem link'});
 }
 /* agendamentos com origem “Remarketing” no Kommo nos 14 dias após o disparo */
 function rmkKommo(x, lista){
@@ -849,7 +871,10 @@ function rmkForm(x){
   var iEsp = h('select', {required:'required'}, RMK_ESP.map(function(e){ var o = h('option', {value:e, text:e}); if (e === (x.especialidade || 'Dermatologia')) o.selected = true; return o; }));
   function nIn(v, ph){ return h('input', {type:'number', min:'0', step:'1', inputmode:'numeric', placeholder:ph || '', value:v === null || v === undefined ? '' : String(v)}); }
   var iCont = nIn(x.contatos), iResp = nIn(x.respostas, 'depois do disparo'), iAg = nIn(x.agend, 'depois do disparo');
+  var iTema = h('input', {type:'text', maxlength:'80', placeholder:'Ex.: Black Friday capilar', value:x.tema || ''});
+  var iCr = h('input', {type:'url', placeholder:'https://drive.google.com/...', value:x.criativo || ''});
   f.appendChild(h('div', {class:'rmk-campos'}, [campo('Data', iData), campo('Especialidade', iEsp), campo('Contatos', iCont), campo('Respostas', iResp), campo('Agendamentos', iAg)]));
+  f.appendChild(h('div', {class:'rmk-campos rmk-campos2'}, [campo('Tema', iTema), campo('Link do criativo (Drive)', iCr)]));
   var erro = h('p', {class:'rmk-erro', hidden:'hidden'});
   var bSal = h('button', {type:'submit', class:'btn pri', text:novo ? 'Cadastrar disparo' : 'Salvar'});
   var bCan = h('button', {type:'button', class:'btn', text:'Cancelar'});
@@ -867,6 +892,10 @@ function rmkForm(x){
     ev.preventDefault();
     var corpo = {data:iData.value, especialidade:iEsp.value, contatos:num(iCont.value), respostas:num(iResp.value), agend:num(iAg.value), atualizado_em:new Date().toISOString(), editado_manual:true};
     if (x.nome) corpo.nome = x.nome;
+    if (x.origem) corpo.origem = x.origem;
+    var tema = iTema.value.trim(), cr = iCr.value.trim();
+    if (tema) corpo.tema = tema;
+    if (cr){ if (!/^https:\/\//.test(cr)){ erro.hidden = false; erro.textContent = 'O link do criativo precisa começar com https://'; return; } corpo.criativo = cr; }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(corpo.data)){ erro.hidden = false; erro.textContent = 'Informe a data.'; return; }
     bSal.disabled = true;
     var col = RMK.db.collection('remarketing');
@@ -905,19 +934,23 @@ function pgRemarketing(){
   if (podeEditar && !RMK.form){
     var bNovo = h('button', {class:'btn pri', type:'button', text:'+ Cadastrar disparo'});
     bNovo.addEventListener('click', function(){ RMK.form = {}; render(); });
-    c2.appendChild(h('div', {class:'rmk-topo'}, [bNovo, h('span', {class:'nota', text:'Cadastre antes do envio e volte para lançar respostas e agendamentos.'})]));
+    c2.appendChild(h('div', {class:'rmk-topo'}, [bNovo, h('span', {class:'nota', text:'Cadastre ao planejar, com o link do criativo: ele aparece como Programado. Depois do envio, volte para lançar respostas e agendamentos.'})]));
   }
   if (RMK.form) c2.appendChild(rmkForm(RMK.form));
   if (RMK.estado === 'lento') c2.appendChild(alerta('Os disparos cadastrados ainda não carregaram. Os números podem estar desatualizados.'));
   if ((RMK.estado === 'sem' || RMK.estado === 'erro') && window.claude && window.claude.use) c2.appendChild(alerta('Cadastro indisponível nesta visualização. Mostrando os disparos da planilha.'));
   var ST = {prog:['Programado', 'rst-prog'], and:['Aguardando resultado', 'rst-and'], ok:['Concluído', 'rst-ok']};
-  c2.appendChild(tabela(['Data', 'Especialidade', 'Contatos', 'Respostas', 'Agend.', ''], lista.slice(0, 14).map(function(x){
+  var vis = RMK.todos ? lista : lista.slice(0, 14);
+  c2.appendChild(tabela(['Data', 'Especialidade', 'Criativo', 'Contatos', 'Respostas', 'Agend.', ''], vis.map(function(x){
     var ed = null;
-    if (podeEditar && RMK.docs && !RMK.form){ ed = h('button', {class:'lnk', type:'button', text:'Editar'}); ed.addEventListener('click', function(){ RMK.form = x; render(); }); }
-    return {cls:x.status === 'ok' ? '' : 'mut', cel:[h('span', null, [dm(x.data), h('span', {class:'rst ' + ST[x.status][1], text:ST[x.status][0]})]), x.nome ? h('span', null, [x.especialidade, h('small', {class:'rmk-nome', text:x.nome})]) : x.especialidade, x.contatos === null ? '—' : fmt(x.contatos),
-      x.respostas === null ? '—' : fmt(x.respostas), x.agend === null ? '—' : fmt(x.agend), ed || '']};
-  }), null, {esq:[0, 1]}));
-  row.appendChild(c1); row.appendChild(c2); f.appendChild(row);
+    if (podeEditar && RMK.docs && !RMK.form && !x.hist){ ed = h('button', {class:'lnk', type:'button', text:'Editar'}); ed.addEventListener('click', function(){ RMK.form = x; render(); }); }
+    var sub = x.tema || x.nome;
+    return {cls:x.status === 'ok' ? '' : 'mut', cel:[h('span', null, [x.data.slice(0, 4) < hojeIso().slice(0, 4) ? dmy(x.data) : dm(x.data), h('span', {class:'rst ' + ST[x.status][1], text:ST[x.status][0]})]), sub ? h('span', null, [x.especialidade, h('small', {class:'rmk-nome', text:sub})]) : x.especialidade, rmkLinkCriativo(x), x.contatos === null || x.contatos === undefined ? '—' : fmt(x.contatos),
+      x.respostas === null || x.respostas === undefined ? '—' : fmt(x.respostas), x.agend === null || x.agend === undefined ? '—' : fmt(x.agend), ed || '']};
+  }), null, {esq:[0, 1, 2]}));
+  if (lista.length > 14){ var bT = h('button', {class:'lnk rmk-todos', type:'button', text:RMK.todos ? 'Mostrar só os 14 mais recentes' : 'Mostrar todos os ' + lista.length + ' disparos (histórico da planilha)'}); bT.addEventListener('click', function(){ RMK.todos = !RMK.todos; render(); }); c2.appendChild(bT); }
+  row.className = 'mt'; row.appendChild(c2); f.appendChild(row);
+  var row1 = h('div', {class:'mt'}); row1.appendChild(c1); f.appendChild(row1);
   return f;
 }
 
