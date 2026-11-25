@@ -1770,7 +1770,9 @@ function pgReunioes(){
   hd.appendChild(meta);
   if (R.manchete && !(R.roteiro && R.roteiro.length)) hd.appendChild(h('p', {class:'rn-manchete', text:R.manchete}));
   var PT = R.pautas || [];
-  var pauta = [['rn-1','Reporte'],['rn-2','Pendências'],['rn-3','Pontos a melhorar'],['rn-4','Oportunidades']];
+  var pauta = [['rn-1','Reporte'],['rn-2','Pendências']];
+  if (R.melhorar && R.melhorar.length) pauta.push(['rn-3','Pontos a melhorar']);
+  pauta.push(['rn-4','Oportunidades']);
   PT.forEach(function(p, i){ pauta.push(['rn-p' + i, p.curto || p.titulo]); });
   pauta.push(['rn-5','Próximas estratégias'], ['rn-6','Combinados e próximos passos']);
   var NUM = {}; pauta.forEach(function(p, i){ NUM[p[0]] = (i + 1) + '. '; });
@@ -1824,9 +1826,9 @@ function pgReunioes(){
     }));
   }
   var row = h('div', {class:'grid g2 mt'});
-  var c3 = card(NUM['rn-3'] + 'Pontos a melhorar', 'O que segurou o resultado no período', [itens(R.melhorar, 'rn-m')], 'rn-sec'); c3.id = 'rn-3';
+  if (R.melhorar && R.melhorar.length){ var c3 = card(NUM['rn-3'] + 'Pontos a melhorar', 'O que segurou o resultado no período', [itens(R.melhorar, 'rn-m')], 'rn-sec'); c3.id = 'rn-3'; row.appendChild(c3); }
   var c4 = card(NUM['rn-4'] + 'Oportunidades', 'O que os dados mostram que dá para aproveitar', [itens(R.oportunidades, 'rn-o')], 'rn-sec'); c4.id = 'rn-4';
-  row.appendChild(c3); row.appendChild(c4); f.appendChild(row);
+  row.appendChild(c4); f.appendChild(row);
 
   /* pautas especiais (ex.: proposta de IA) */
   PT.forEach(function(p, i){ var cp = rPauta(p, NUM['rn-p' + i]); cp.id = 'rn-p' + i; f.appendChild(h('div', {class:'mt'}, [cp])); });
@@ -1899,9 +1901,9 @@ function rEssencial(f, R, NUM){
 
   /* 3 e 4) melhorar e oportunidades: número + título */
   function cartas(lista, cls){ return h('div', {class:'es-cartas'}, (lista || []).map(function(x){ return h('div', {class:'es-c ' + cls}, [h('b', {text:x[0]}), h('span', {class:'es-cn', text:x[3] || '•'}), x[4] ? h('small', {text:x[4]}) : null]); })); }
-  var c3 = esSec('rn-3', NUM['rn-3'] + 'Pontos a melhorar'); c3.appendChild(cartas(R.melhorar, 'es-m'));
+  if (R.melhorar && R.melhorar.length){ var c3 = esSec('rn-3', NUM['rn-3'] + 'Pontos a melhorar'); c3.appendChild(cartas(R.melhorar, 'es-m')); f.appendChild(h('div', {class:'mt'}, [c3])); }
   var c4 = esSec('rn-4', NUM['rn-4'] + 'Oportunidades'); c4.appendChild(cartas(R.oportunidades, 'es-o'));
-  f.appendChild(h('div', {class:'mt'}, [c3])); f.appendChild(h('div', {class:'mt'}, [c4]));
+  f.appendChild(h('div', {class:'mt'}, [c4]));
 
   /* pautas especiais */
   (R.pautas || []).forEach(function(p, i){
