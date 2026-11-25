@@ -1653,6 +1653,43 @@ function rLink(k){
   }});
 }
 function rDdm(a, b){ return a.slice(5, 7) === b.slice(5, 7) ? (+a.slice(8)) + ' a ' + dm(b) : dm(a) + ' a ' + dm(b); }
+function rPauta(p, num){
+  var c = card(num + p.titulo, p.subtitulo || '', null, 'rn-sec rn-pautaesp');
+  if (p.abertura) c.appendChild(h('p', {class:'rn-abertura', text:p.abertura}));
+  if (p.mapa && p.mapa.length){
+    c.appendChild(h('h4', {class:'vig-sub', text:p.mapa_titulo || 'O que os dados mostram e o que muda'}));
+    c.appendChild(h('div', {class:'rn-mapa'}, [h('div', {class:'rn-mh'}, [h('span', {text:'Ponto'}), h('span', {text:'Hoje'}), h('span', {text:p.mapa_col || 'Com a IA'})])].concat(p.mapa.map(function(m){
+      return h('div', {class:'rn-mr'}, [h('b', {text:m[0]}), h('span', {class:'rn-hoje', text:m[1]}), h('span', {class:'rn-com', text:m[2]})]);
+    }))));
+  }
+  var cols = [];
+  if (p.equipe && p.equipe.length) cols.push(h('div', null, [h('h4', {class:'vig-sub', text:'Continua com a equipe'}), h('ul', {class:'rn-lista'}, p.equipe.map(function(t){ return h('li', {text:t}); }))]));
+  if (p.nao_resolve && p.nao_resolve.length) cols.push(h('div', null, [h('h4', {class:'vig-sub', text:'O que a IA não resolve sozinha'}), h('ul', {class:'rn-lista'}, p.nao_resolve.map(function(t){ return h('li', {text:t}); }))]));
+  if (p.cuidados && p.cuidados.length) cols.push(h('div', null, [h('h4', {class:'vig-sub', text:'Cuidados'}), h('ul', {class:'rn-lista'}, p.cuidados.map(function(t){ return h('li', {text:t}); }))]));
+  if (cols.length) c.appendChild(h('div', {class:'grid g3 rn-cols'}, cols));
+  var row = h('div', {class:'grid g2 rn-cols'});
+  if (p.conta && p.conta.linhas){
+    var cc = h('div', null, [h('h4', {class:'vig-sub', text:p.conta.titulo || 'Conta de referência'})]);
+    cc.appendChild(h('div', {class:'rn-conta'}, p.conta.linhas.map(function(l){ return h('div', {class:'rn-cl' + (l[2] ? ' rn-cl-' + l[2] : '')}, [h('span', {text:l[0]}), h('b', {text:l[1]})]); })));
+    if (p.conta.nota) cc.appendChild(h('p', {class:'nota', text:p.conta.nota}));
+    row.appendChild(cc);
+  }
+  if (p.medir && p.medir.length){
+    var cm = h('div', null, [h('h4', {class:'vig-sub', text:'Como vamos medir no painel'})]);
+    cm.appendChild(tabela(['Indicador', 'Hoje', 'Onde ver'], p.medir.map(function(m){ return {cel:[m[0], m[1], m[2]]}; }), null, {esq:[0, 2]}));
+    row.appendChild(cm);
+  }
+  if (row.childNodes.length) c.appendChild(row);
+  if (p.condicoes && p.condicoes.length){
+    c.appendChild(h('h4', {class:'vig-sub', text:'Condições do teste'}));
+    c.appendChild(h('div', {class:'rn-cond'}, p.condicoes.map(function(x){ return h('div', {class:'rn-cd'}, [h('b', {text:x[0]}), h('span', {text:x[1]})]); })));
+  }
+  if (p.decidir && p.decidir.length){
+    c.appendChild(h('h4', {class:'vig-sub', text:'Para decidir hoje'}));
+    c.appendChild(h('ol', {class:'rn-decidir'}, p.decidir.map(function(t){ return h('li', {text:t}); })));
+  }
+  return c;
+}
 function pgReunioes(){
   var f = document.createDocumentFragment(), RR = D.reunioes || {}, ids = Object.keys(RR).sort().reverse();
   var topo = h('div', {class:'phead'}, [h('div', null, [h('h1', {text:'Reuniões'}), h('p', {class:'per', text:'Reporte, pontos a melhorar, oportunidades, próximas estratégias e o que foi combinado em cada reunião com os sócios'})])]);
@@ -1678,12 +1715,16 @@ function pgReunioes(){
   if (R.participantes && R.participantes.length) meta.appendChild(h('span', {text:'Participantes: ' + R.participantes.join(', ')}));
   hd.appendChild(meta);
   if (R.manchete) hd.appendChild(h('p', {class:'rn-manchete', text:R.manchete}));
-  var pauta = [['rn-1','Reporte'],['rn-2','Pendências'],['rn-3','Pontos a melhorar'],['rn-4','Oportunidades'],['rn-5','Próximas estratégias'],['rn-6','Combinados e próximos passos']];
+  var PT = R.pautas || [];
+  var pauta = [['rn-1','Reporte'],['rn-2','Pendências'],['rn-3','Pontos a melhorar'],['rn-4','Oportunidades']];
+  PT.forEach(function(p, i){ pauta.push(['rn-p' + i, p.curto || p.titulo]); });
+  pauta.push(['rn-5','Próximas estratégias'], ['rn-6','Combinados e próximos passos']);
+  var NUM = {}; pauta.forEach(function(p, i){ NUM[p[0]] = (i + 1) + '. '; });
   hd.appendChild(h('ol', {class:'rn-pauta'}, pauta.map(function(p){ return h('li', null, [h('a', {href:'#' + p[0], text:p[1], onclick:function(e){ e.preventDefault(); var el = document.getElementById(p[0]); if (el) el.scrollIntoView({behavior:'smooth', block:'start'}); }})]); })));
   f.appendChild(h('div', {class:'mt'}, [hd]));
 
   /* 1) reporte */
-  var c1 = card('1. Reporte', 'O que aconteceu de ' + rDdm(R.de, R.ate) + ', com os números do painel', null, 'rn-sec'); c1.id = 'rn-1';
+  var c1 = card(NUM['rn-1'] + 'Reporte', 'O que aconteceu de ' + rDdm(R.de, R.ate) + ', com os números do painel', null, 'rn-sec'); c1.id = 'rn-1';
   var espAnt = sel.esp; sel.esp = 'todas';
   var A = {ini:R.de, fim:R.ate}, B = R.cmp_de ? {ini:R.cmp_de, fim:R.cmp_ate} : null, a = agg(A), b = B ? agg(B) : null, bRot = B ? rDdm(R.cmp_de, R.cmp_ate) : null;
   var ka = kAgg(R.de, R.ate), kb = B ? kAgg(B.ini, B.fim) : null;
@@ -1704,7 +1745,7 @@ function pgReunioes(){
   f.appendChild(h('div', {class:'mt'}, [c1]));
 
   /* 2) pendências */
-  var c2 = card('2. Pendências da reunião anterior', R.pendencias_nota || 'Como estão os próximos passos combinados antes', null, 'rn-sec'); c2.id = 'rn-2';
+  var c2 = card(NUM['rn-2'] + 'Pendências da reunião anterior', R.pendencias_nota || 'Como estão os próximos passos combinados antes', null, 'rn-sec'); c2.id = 'rn-2';
   if (R.pendencias && R.pendencias.length) c2.appendChild(tabela(['Ação', 'Responsável', 'Situação', 'Observação'], R.pendencias.map(function(p){ return {cel:[p[0], p[1], rStatus(p[2]), p[3] || '']}; }), null, {esq:[0, 1, 3]}));
   else c2.appendChild(h('p', {class:'vazio', text:'Sem pendências anteriores.'}));
   f.appendChild(h('div', {class:'mt'}, [c2]));
@@ -1716,12 +1757,15 @@ function pgReunioes(){
     }));
   }
   var row = h('div', {class:'grid g2 mt'});
-  var c3 = card('3. Pontos a melhorar', 'O que segurou o resultado no período', [itens(R.melhorar, 'rn-m')], 'rn-sec'); c3.id = 'rn-3';
-  var c4 = card('4. Oportunidades', 'O que os dados mostram que dá para aproveitar', [itens(R.oportunidades, 'rn-o')], 'rn-sec'); c4.id = 'rn-4';
+  var c3 = card(NUM['rn-3'] + 'Pontos a melhorar', 'O que segurou o resultado no período', [itens(R.melhorar, 'rn-m')], 'rn-sec'); c3.id = 'rn-3';
+  var c4 = card(NUM['rn-4'] + 'Oportunidades', 'O que os dados mostram que dá para aproveitar', [itens(R.oportunidades, 'rn-o')], 'rn-sec'); c4.id = 'rn-4';
   row.appendChild(c3); row.appendChild(c4); f.appendChild(row);
 
+  /* pautas especiais (ex.: proposta de IA) */
+  PT.forEach(function(p, i){ var cp = rPauta(p, NUM['rn-p' + i]); cp.id = 'rn-p' + i; f.appendChild(h('div', {class:'mt'}, [cp])); });
+
   /* 5) estratégias */
-  var c5 = card('5. Próximas estratégias', 'Propostas para os próximos 15 dias e para o próximo mês', null, 'rn-sec'); c5.id = 'rn-5';
+  var c5 = card(NUM['rn-5'] + 'Próximas estratégias', 'Propostas para os próximos 15 dias e para o próximo mês', null, 'rn-sec'); c5.id = 'rn-5';
   c5.appendChild(h('div', {class:'rn-estr'}, (R.estrategias || []).map(function(x, i){
     return h('div', {class:'rn-e'}, [h('span', {class:'rn-en', text:String(i + 1)}), h('div', null, [
       h('div', {class:'rn-et'}, [h('b', {text:x[0]}), rStatus(x[3])]), h('p', {text:x[1]}),
@@ -1730,7 +1774,7 @@ function pgReunioes(){
   f.appendChild(h('div', {class:'mt'}, [c5]));
 
   /* 6) combinados */
-  var c6 = card('6. Combinados e próximos passos', R.aprovacao || 'O que ficou decidido na reunião, com responsável e prazo', null, 'rn-sec'); c6.id = 'rn-6';
+  var c6 = card(NUM['rn-6'] + 'Combinados e próximos passos', R.aprovacao || 'O que ficou decidido na reunião, com responsável e prazo', null, 'rn-sec'); c6.id = 'rn-6';
   if (R.combinados && R.combinados.length) c6.appendChild(h('ul', {class:'rn-lista rn-comb'}, R.combinados.map(function(t){ return h('li', {text:t}); })));
   if (R.passos && R.passos.length) c6.appendChild(tabela(['Próximo passo', 'Responsável', 'Prazo', 'Situação'], R.passos.map(function(p){ return {cel:[p[0], p[1], p[2] ? dm(p[2]) : '—', rStatus(p[3])]}; }), null, {esq:[0, 1]}));
   if (!(R.combinados && R.combinados.length) && !(R.passos && R.passos.length))
