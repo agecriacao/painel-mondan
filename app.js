@@ -1030,6 +1030,8 @@ var EXPED = 'seg a sex, das 8h às 18h';
 function fmtUtil(m){ if (m === null || m === undefined) return '—'; if (m < 60) return nf0.format(m) + ' min'; return nf1.format(m / 60) + ' h'; }
 function kAtendimento(f, a, b, bRot, A){
   var temV = a.vigia_dias > 0, bV = b && b.vigia_dias > 0 ? b : null;
+  // 0) Resumo rápido
+  kResumo(f, a, A);
   // 1) Como medimos
   var c0 = card('Como o painel mede o tempo de resposta', 'O robô responde na hora. O que importa é quanto a equipe leva depois que o lead pede atendimento.');
   var passos = [
@@ -1049,7 +1051,7 @@ function kAtendimento(f, a, b, bRot, A){
     h('li', {text:'Se o lead não responde ao robô em 24 horas, ele não entra na conta da equipe: aparece como “não respondeu ao robô”, um sinal sobre a qualidade do lead.'}),
     h('li', {text:'Horário de atendimento: ' + EXPED + '. Noites, fins de semana e feriados não contam no tempo da equipe. Mensagens automáticas e modelos não contam como resposta.'})
   ]));
-  f.appendChild(c0);
+  f.appendChild(h('div', {class:'mt'}, [c0]));
 
   // 2) Indicadores
   var g = h('div', {class:'grid g4 mt'});
@@ -1125,10 +1127,61 @@ function kAtendimento(f, a, b, bRot, A){
 }
 
 // Auditoria qualitativa: leitura de uma amostra de conversas, só com resultados agregados
-function kAuditoria(f, A){
+function kAudPeriodo(A){
   var AU = (D.kommo && D.kommo.auditorias) || {}, ini = A.ini, fim = A.ate || A.fim;
   var ids = Object.keys(AU).sort().reverse();
   var x = null; ids.some(function(k){ var y = AU[k]; if (y.de <= fim && y.ate >= ini){ x = y; return true; } return false; });
+  return {x:x, ultima:ids.length ? AU[ids[0]] : null, ids:ids, AU:AU};
+}
+
+function kResumo(f, a, A){
+  var temV = a.vigia_dias > 0, P = kAudPeriodo(A), x = P.x, au = x || P.ultima;
+  var c = card('Resumo em 1 minuto', 'O essencial do atendimento no período e o que fazer a seguir');
+  if (au && au.sintese && au.sintese.veredito) c.appendChild(h('p', {class:'rs-veredito', text:au.sintese.veredito}));
+  var term = h('div', {class:'rs-term'});
+  function bloco(rot, status, cls, numero, texto){
+    term.appendChild(h('div', {class:'rs-t rs-' + cls}, [h('span', {class:'rs-rot', text:rot}), h('span', {class:'rs-st', text:status}),
+      h('b', {class:'rs-num', text:numero}), h('p', {text:texto})]));
+  }
+  // 1) velocidade: vem dos números do período
+  if (temV && a.hum.length){
+    var md = mediana(a.hum), p15 = pctAte(a.hum, 15);
+    var stV = md <= 20 ? ['Boa', 'ok'] : md <= 60 ? ['Atenção', 'at'] : ['Ponto fraco', 'ruim'];
+    bloco('Velocidade da equipe', stV[0], stV[1], fmtMin(md), 'de mediana depois que o lead pede uma pessoa. ' + nf0.format(p15) + '% respondidos em até 15 min; ' + fmt(a.sem_hum) + ' ficaram sem resposta.');
+  } else {
+    var mr = mediana(a.resp);
+    bloco('Velocidade da equipe', 'Medida antiga', 'at', mr === null ? '—' : fmtMin(mr), 'desde a primeira mensagem do lead. A medida nova aparece quando o mês tiver os dados do Vigia.');
+  }
+  // 2) condução: vem da auditoria
+  if (x && x.diagnostico){
+    var dg = x.diagnostico, conv = (dg.lead_bom_atend_bom || 0) + (dg.lead_bom_atend_falhou || 0), pb = conv ? dg.lead_bom_atend_falhou / conv : 0;
+    var stC = pb < .2 ? ['Boa', 'ok'] : pb < .4 ? ['Atenção', 'at'] : ['Ponto de melhoria', 'ruim'];
+    bloco('Condução até o agendamento', stC[0], stC[1], fmt(dg.lead_bom_atend_falhou) + ' de ' + fmt(conv), (x.sintese && x.sintese.conducao) || 'conversas com lead interessado tiveram alguma brecha.');
+  } else bloco('Condução até o agendamento', 'Sem auditoria', 'neu', '—', 'Ainda não há leitura de conversas para este período.');
+  // 3) qualidade do lead: números do período + auditoria
+  var tot = a.sumiu + a.conversou;
+  if (temV && tot){
+    var ps = a.sumiu / tot;
+    bloco('Qualidade do lead', ps >= .2 ? 'Maior perda' : 'Atenção', ps >= .2 ? 'ruim' : 'at', nf0.format(ps * 100) + '%',
+      'dos leads não responderam nem ao robô. ' + ((x && x.sintese && x.sintese.lead) || ''));
+  } else if (x && x.diagnostico){
+    bloco('Qualidade do lead', 'Ver auditoria', 'at', pctTxt(x.diagnostico.lead_fraco, x.amostra), (x.sintese && x.sintese.lead) || 'das conversas lidas: o lead não engajou.');
+  }
+  c.appendChild(term);
+  if (au && au.sugestoes && au.sugestoes.length){
+    c.appendChild(h('h4', {class:'vig-sub', text:'O que fazer agora' + (x ? '' : ' (da auditoria de ' + dm(au.de) + ' a ' + dm(au.ate) + ')')}));
+    var ol = h('ol', {class:'rs-sug'});
+    au.sugestoes.forEach(function(sg){
+      ol.appendChild(h('li', null, [h('div', {class:'rs-sug-top'}, [h('b', {text:sg[0]}), h('span', {class:'rs-tag', text:sg[2]})]), h('p', {text:sg[1]})]));
+    });
+    c.appendChild(ol);
+  }
+  c.appendChild(h('p', {class:'nota', text:'Velocidade e qualidade do lead usam todas as conversas do período. Condução e sugestões vêm da leitura de uma amostra de conversas, detalhada mais abaixo.'}));
+  f.appendChild(c);
+}
+
+function kAuditoria(f, A){
+  var P = kAudPeriodo(A), AU = P.AU, ids = P.ids, x = P.x;
   var c = card('Qualidade das conversas', x ? 'Auditoria de ' + x.amostra + ' conversas de ' + dm(x.de) + ' a ' + dm(x.ate) + ', lidas uma a uma' : 'Leitura de uma amostra de conversas, uma a uma');
   if (!x){
     c.appendChild(h('p', {class:'vazio', text:ids.length ? 'Não há auditoria para este período. A mais recente cobre ' + dm(AU[ids[0]].de) + ' a ' + dm(AU[ids[0]].ate) + '.' : 'A primeira auditoria ainda não foi feita.'}));
