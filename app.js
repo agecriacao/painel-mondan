@@ -1866,7 +1866,24 @@ function rEssencial(f, R, NUM){
 
   /* 1) números do mês */
   var c1 = esSec('rn-1', NUM['rn-1'] + (E.titulo || 'O mês em números'), rDdm(R.de, R.ate) + (R.cmp_de ? ' · comparado com ' + rDdm(R.cmp_de, R.cmp_ate) : ''));
-  if (E.numeros) c1.appendChild(h('div', {class:'es-hero'}, E.numeros.map(function(x){ return esNum(x[0], x[1], x[2], x[3]); })));
+  if (E.por_esp && R.cmp_de){
+    var espB2 = sel.esp; sel.esp = 'todas';
+    var bE = agg({ini:R.cmp_de, fim:R.cmp_ate}); sel.esp = espB2;
+    var rotA = E.rot_a || 'Novembro', rotB = E.rot_b || 'Outubro';
+    var linhasE = ['derm', 'cap', 'blef'].map(function(k){ return [ESP_NOME[k], a.espA[k] || 0, bE.espA[k] || 0]; });
+    var outA = a.agend - linhasE.reduce(function(t, l){ return t + l[1]; }, 0), outB = bE.agend - linhasE.reduce(function(t, l){ return t + l[2]; }, 0);
+    linhasE.push(['Outras especialidades', outA, outB]);
+    var mxE = Math.max.apply(null, linhasE.map(function(l){ return Math.max(l[1], l[2]); }).concat([1]));
+    var tot = h('div', {class:'es-tot'}, [h('span', {class:'es-nv', text:fmt(a.agend)}), h('div', null, [h('b', {text:'agendamentos de ' + rDdm(R.de, R.ate)}), h('small', {text:'Em ' + rotB.toLowerCase() + ', no mesmo período (' + rDdm(R.cmp_de, R.cmp_ate) + '): ' + fmt(bE.agend)})])]);
+    var graf = h('div', {class:'es-esp'}, [h('div', {class:'es-leg'}, [h('span', null, [h('i', {style:'background:#9D7B3E'}), rotA]), h('span', null, [h('i', {style:'background:#DED8C5'}), rotB + ', mesmo período'])])]);
+    linhasE.forEach(function(l){
+      graf.appendChild(h('div', {class:'es-er'}, [h('span', {class:'es-el', text:l[0]}), h('div', {class:'es-eb'}, [
+        h('div', {class:'es-ebr'}, [h('div', {class:'es-ebf', style:'width:' + Math.max(1, l[1] / mxE * 100) + '%;background:#9D7B3E'}), h('b', {text:fmt(l[1])})]),
+        h('div', {class:'es-ebr'}, [h('div', {class:'es-ebf', style:'width:' + Math.max(1, l[2] / mxE * 100) + '%;background:#DED8C5'}), h('small', {text:fmt(l[2])})])])]));
+    });
+    c1.appendChild(h('div', {class:'es-duo'}, [tot, graf]));
+  }
+  else if (E.numeros) c1.appendChild(h('div', {class:'es-hero'}, E.numeros.map(function(x){ return esNum(x[0], x[1], x[2], x[3]); })));
   var duo = h('div', {class:'es-duo'});
   /* origem: barra empilhada */
   var ks = Object.keys(ORI_NOME).filter(function(k){ return a.ori[k]; }).sort(function(x, y){ return a.ori[y] - a.ori[x]; });

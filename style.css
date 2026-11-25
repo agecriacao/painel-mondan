@@ -711,3 +711,16 @@ body.apresentar .es-n .es-nv{font-size:42px}
 .es-gl-sub{border-top:1px solid #C2B280}
 .es-gl-sub span{font-weight:600;color:var(--madeira,#3B1E19)}
 .es-gl-sub b{font-size:19px;color:#9D7B3E}
+.es-tot{display:flex;align-items:center;gap:18px;border:1px solid #E6DBC9;border-top:3px solid #3F7A4E;border-radius:14px;padding:18px 20px;background:#FFFCF7}
+.es-tot .es-nv{font-size:56px;font-weight:700;line-height:1;color:#3F7A4E}
+.es-tot b{display:block;font-size:16px;color:var(--madeira,#3B1E19)}
+.es-tot small{display:block;font-size:13px;color:#8A7F72;margin-top:4px}
+.es-esp{border:1px solid #EFE7DA;border-radius:14px;padding:12px 16px;background:#fff}
+.es-esp .es-leg{margin-bottom:6px}
+.es-er{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center;padding:7px 0;border-top:1px solid #F3EDE3}
+.es-el{font-size:14px;font-weight:600;color:var(--madeira,#3B1E19)}
+.es-eb{display:flex;flex-direction:column;gap:3px}
+.es-ebr{display:flex;align-items:center;gap:8px}
+.es-ebf{height:14px;border-radius:4px;min-width:3px}
+.es-ebr b{font-size:16px;color:var(--madeira,#3B1E19)}
+.es-ebr small{font-size:12.5px;color:#8A7F72}
