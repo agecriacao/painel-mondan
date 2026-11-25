@@ -557,7 +557,9 @@ function pgGeral(){
   /* origem + mídia */
   var row2 = h('div', {class:'grid g-7-5 mt'});
   row2.appendChild(cardOrigem(a, b, bRot));
-  row2.appendChild(cardMidiaResumo(a, b, bRot));
+  var colD = h('div', {class:'col-pilha'}, [cardMidiaResumo(a, b, bRot)]);
+  var cw = cardWhatsResumo(A, B, bRot); if (cw) colD.appendChild(cw);
+  row2.appendChild(colD);
   f.appendChild(row2);
   f.appendChild(notas());
   return f;
@@ -621,6 +623,34 @@ function cardOrigem(a, b, bRot){
   return c;
 }
 
+var DOLAR = 5.8;
+function brlTxt(v){ return 'R$ ' + nf0.format(Math.round(v * DOLAR)); }
+function cardWhatsResumo(A, B, bRot){
+  if (!D.kommo || !D.kommo.meses) return null;
+  var ka = kAgg(A.ini, A.fim), kb = B ? kAgg(B.ini, B.fim) : null;
+  if (!ka.wa_dias) return null;
+  var c = card('Custos do WhatsApp (Kommo)', 'Mensagens pagas à Meta: régua, remarketing e mensagens automáticas');
+  var g = h('div', {class:'grid g2 solo'});
+  g.appendChild(h('div', {style:'padding:4px 0'}, [h('div', {class:'st-l', text:'Custo no período'}), h('div', {class:'st-v', style:'font-size:24px', text:usd(ka.wa_custo)}), h('div', {class:'st-c'}, [h('span', {text:'≈ ' + brlTxt(ka.wa_custo) + (kb && kb.wa_dias ? ' · ' + bRot + ': ' + usd(kb.wa_custo) : '')})])]));
+  g.appendChild(h('div', {style:'padding:4px 0'}, [h('div', {class:'st-l', text:'Mensagens enviadas'}), h('div', {class:'st-v', style:'font-size:24px', text:fmt(ka.wa_env)}), h('div', {class:'st-c'}, [h('span', {text:(ka.wa_env ? usd(ka.wa_custo / ka.wa_env) + ' por mensagem' : '')})])]));
+  c.appendChild(g);
+  var M = kModelos(A.ini, A.fim), por = {};
+  M.lista.forEach(function(t){ por[t.familia] = (por[t.familia] || 0) + t.custo; });
+  var fams = Object.keys(por).sort(function(x, y){ return por[y] - por[x]; });
+  if (fams.length){
+    var somaF = fams.reduce(function(t, k){ return t + por[k]; }, 0);
+    var ult = M.meses[M.meses.length - 1], dK = Object.keys((D.kommo.meses[ult] || {}).dias || {}).filter(function(d){ var x = D.kommo.meses[ult].dias[d]; return x && x.wa; }).sort().pop() || fimMes(ult);
+    var inteiro = M.meses.length && M.meses[0] + '-01' >= A.ini && A.fim >= (fimMes(ult) < dK ? fimMes(ult) : dK);
+    var itens = fams.map(function(k){ return {l:k, sub:pctTxt(por[k], Math.max(somaF, ka.wa_custo)) + ' do custo', v:Math.round(por[k]), tip:usd(por[k])}; });
+    if (inteiro && ka.wa_custo - somaF > 1) itens.push({l:'Outras mensagens pagas', sub:'sem modelo identificado no Kommo', v:Math.round(ka.wa_custo - somaF), tip:usd(ka.wa_custo - somaF)});
+    c.appendChild(h('h4', {class:'vig-sub', style:'margin-top:14px', text:'Para onde vai o custo (US$)'}));
+    barrasH(c, itens);
+    if (!inteiro) c.appendChild(h('p', {class:'nota', text:'A divisão por tipo é do mês inteiro (' + M.meses.map(function(m){ return nomeMes(m); }).join(' e ') + '), não só do período escolhido.'}));
+  }
+  c.appendChild(h('p', {class:'nota', text:'A Meta cobra por mensagem enviada com modelo aprovado; responder dentro da conversa aberta pelo lead não tem custo. Dólar a R$ 5,80.'}));
+  c.appendChild(h('button', {type:'button', class:'tag', style:'margin-top:12px;cursor:pointer', onclick:function(){ sel.kaba = 'whatsapp'; irPara('kommo'); }, text:'Ver custos do WhatsApp em detalhe →'}));
+  return c;
+}
 function cardMidiaResumo(a, b, bRot){
   var c = card('Anúncios no Meta', 'Conta inteira, direto do Gerenciador');
   var g = h('div', {class:'grid g2 solo'});
