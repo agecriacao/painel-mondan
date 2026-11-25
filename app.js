@@ -1043,7 +1043,7 @@ function kAtendimento(f, a, b, bRot, A){
   var passos = [
     ['1', 'O lead escreve', 'Pelo anúncio, pelo Instagram ou direto no WhatsApp.', ''],
     ['2', 'O robô responde', 'Em segundos: boas-vindas e a pergunta sobre o que a pessoa procura. Isso deixa a primeira resposta do Kommo quase zerada, mas ainda não é atendimento.', 'vig-auto'],
-    ['3', 'O lead responde ao robô', 'É aqui que ele pede uma pessoa. O relógio da equipe começa a contar.', 'vig-inicio'],
+    ['3', 'O lead responde ao robô', 'Ele saiu do automático e está conversando. O relógio da equipe começa a contar a partir daqui.', 'vig-inicio'],
     ['4', 'Uma pessoa da equipe responde', 'O tempo entre o passo 3 e o passo 4 é o tempo de resposta da equipe, contado em horário de atendimento.', 'vig-fim']
   ];
   var tl = h('div', {class:'vig-linha'});
@@ -1067,7 +1067,7 @@ function kAtendimento(f, a, b, bRot, A){
     var bs = mediana(a.bot_s);
     g.appendChild(tile({rot:'Robô responde em', txt:bs === null ? '—' : (bs < 60 ? nf0.format(bs) + ' s' : fmtMin(Math.round(bs / 60))), nota:'mediana do passo 1 ao passo 2'}));
     g.appendChild(tile({rot:'Equipe respondeu em até 15 min', v:pctAte(a.hum, 15), b:bV ? pctAte(bV.hum, 15) : undefined, bRot:bRot, tipo:'pct', pp:true, nota:'dos leads que conversaram e foram respondidos'}));
-    g.appendChild(tile({rot:'Pediram atendimento e ficaram sem resposta', v:a.sem_hum, b:bV ? bV.sem_hum : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:a.alvo_dias ? 'a última mensagem do lead ficou sem resposta de ninguém por mais de um dia útil (inclui fornecedores e currículos)' : pctTxt(a.sem_hum, a.conversou) + ' de quem respondeu ao robô · após um dia útil. Conta antiga: ainda inclui fornecedores e quem não seguiu depois do follow-up.'}));
+    g.appendChild(tile({rot:'Responderam ao robô e ficaram sem retorno', v:a.sem_hum, b:bV ? bV.sem_hum : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:a.alvo_dias ? 'o lead passou pelo robô, mandou mensagem e ninguém respondeu depois, nem a equipe nem o robô, por mais de um dia útil. Não conta quem parou de responder aos follow-ups do robô (' + fmt(a.nao_seguiu) + '). Inclui fornecedores e currículos: confira as conversas' : pctTxt(a.sem_hum, a.conversou) + ' de quem respondeu ao robô · após um dia útil. Conta antiga: ainda inclui fornecedores e quem não seguiu depois do follow-up.'}));
   } else {
     g.appendChild(tile({hero:true, rot:'Primeira resposta da equipe', v:mediana(a.resp), b:b ? mediana(b.resp) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'medida antiga: desde a primeira mensagem do lead'}));
     g.appendChild(tile({rot:'Respondidos em até 15 min', v:pctAte(a.resp, 15), b:b ? pctAte(b.resp, 15) : undefined, bRot:bRot, tipo:'pct', pp:true}));
@@ -1099,7 +1099,7 @@ function kAtendimento(f, a, b, bRot, A){
         a.alvo_dias ? h('div', {class:'linha'}, [h('span', {text:'Responderam ao robô e não seguiram depois do follow-up'}), h('b', {text:fmt(a.nao_seguiu) + ' · ' + pctTxt(a.nao_seguiu, a.conversou)})]) : null,
         h('div', {class:'linha'}, [h('span', {text:'Perdidos por preço, distância, sem interesse ou fora do perfil'}), h('b', {text:fmt(pl)})])]),
       h('div', {class:'vig-lado'}, [h('h4', {text:'Durante o atendimento'}),
-        h('div', {class:'linha'}, [h('span', {text:'Pediram atendimento e ficaram sem resposta'}), h('b', {text:fmt(a.sem_hum) + ' · ' + pctTxt(a.sem_hum, a.conversou)})]),
+        h('div', {class:'linha'}, [h('span', {text:'Responderam ao robô e ficaram sem retorno'}), h('b', {text:fmt(a.sem_hum) + ' · ' + pctTxt(a.sem_hum, a.conversou)})]),
         h('div', {class:'linha'}, [h('span', {text:'Respondidos depois de 1 hora útil'}), h('b', {text:fmt(lentos) + ' · ' + pctTxt(lentos, a.hum.length)})]),
         h('div', {class:'linha'}, [h('span', {text:'Perdidos sem motivo registrado ou por outro motivo'}), h('b', {text:fmt(po)})])])
     ]));
@@ -1156,7 +1156,7 @@ function kResumo(f, a, A){
   if (temV && a.hum.length){
     var md = mediana(a.hum), p15 = pctAte(a.hum, 15);
     var stV = md <= 20 ? ['Boa', 'ok'] : md <= 60 ? ['Atenção', 'at'] : ['Ponto fraco', 'ruim'];
-    bloco('Velocidade da equipe', stV[0], stV[1], fmtMin(md), 'de mediana depois que o lead pede uma pessoa. ' + nf0.format(p15) + '% respondidos em até 15 min; ' + fmt(a.sem_hum) + ' ficaram sem resposta.');
+    bloco('Velocidade da equipe', stV[0], stV[1], fmtMin(md), 'de mediana depois que o lead responde ao robô. ' + nf0.format(p15) + '% respondidos em até 15 min; ' + fmt(a.sem_hum) + ' ficaram sem resposta.');
   } else {
     var mr = mediana(a.resp);
     bloco('Velocidade da equipe', 'Medida antiga', 'at', mr === null ? '—' : fmtMin(mr), 'desde a primeira mensagem do lead. A medida nova aparece quando o mês tiver os dados novos do atendimento.');
@@ -1783,7 +1783,7 @@ function pgReunioes(){
   g.appendChild(tile({rot:'Custo por lead', v:a.cpc, b:b && b.cpc, bRot:bRot, tipo:'brl2', sentido:'menor', nota:'só campanhas de lead'}));
   g.appendChild(tile({rot:'Agendamentos feitos', v:a.agend, b:b && b.agend, bRot:bRot, tipo:'n', nota:'pela data em que o paciente agendou'}));
   g.appendChild(tile({rot:'Consultas realizadas', v:a.realizadas, b:b && b.realizadas, bRot:bRot, tipo:'n', nota:a.pres.valida ? 'comparecimento de ' + nf0.format(a.pres.v) + '%' : 'comparecimento em validação (registro na planilha)'}));
-  if (ka.vigia_dias) g.appendChild(tile({rot:'Equipe responde em', v:mediana(ka.hum), b:kb && kb.vigia_dias ? mediana(kb.hum) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'mediana, depois que o lead pede uma pessoa'}));
+  if (ka.vigia_dias) g.appendChild(tile({rot:'Equipe responde em', v:mediana(ka.hum), b:kb && kb.vigia_dias ? mediana(kb.hum) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'mediana, depois que o lead responde ao robô'}));
   else g.appendChild(tile({rot:'Primeira resposta da equipe', v:mediana(ka.resp), b:kb && kb.dias ? mediana(kb.resp) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'mediana em horário de atendimento'}));
   c1.appendChild(g);
   if (R.destaques && R.destaques.length){
