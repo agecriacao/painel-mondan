@@ -745,3 +745,7 @@ body.apresentar .es-n .es-nv{font-size:42px}
 .es-cdi{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}
 .es-cdi strong{color:#E8CF9A;font-size:14px}
 .es-cdi span{color:#F1F6F0;font-size:12.5px;line-height:1.4}
+.es-risc{color:#A8553A;font-weight:500;font-size:14px;margin-right:8px;text-decoration-thickness:2px}
+.es-gl-ads{margin-top:6px;border-top:1px dashed #C2B280}
+.es-gl-ads span{font-weight:600;color:var(--madeira,#3B1E19)}
+.es-gl-ads b{font-size:20px;color:var(--madeira,#3B1E19)}

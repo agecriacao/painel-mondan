@@ -1970,7 +1970,7 @@ function rEssencial(f, R, NUM){
       [X.gastos, X.gastos_extra || []].forEach(function(GG, gi){ if (!GG.length) return;
       c.appendChild(h('div', {class:'es-duo es-duo-top' + (gi ? ' es-duo-extra' : '')}, GG.map(function(g){
         var pg = h('div', {class:'es-painel es-gasto' + (g.estimativa ? ' es-estim' : '')}, [h('h5', null, [g.titulo, g.estimativa ? h('span', {class:'es-tag', text:'Estimativa'}) : null])]);
-        g.linhas.forEach(function(l){ pg.appendChild(h('div', {class:'es-gl' + (l[2] ? ' es-gl-' + l[2] : '')}, [h('span', {text:l[0]}), h('b', {text:l[1]})])); });
+        g.linhas.forEach(function(l){ pg.appendChild(h('div', {class:'es-gl' + (l[2] ? ' es-gl-' + l[2] : '')}, [h('span', {text:l[0]}), h('b', null, [l[3] ? h('s', {class:'es-risc', text:l[3]}) : null, l[1]])])); });
         if (g.nota) pg.appendChild(h('p', {class:'es-nota', text:g.nota}));
         if (g.soma_meta){
           var espS = sel.esp; sel.esp = 'todas'; var aS = agg({ini:R.de, fim:R.ate}); sel.esp = espS;
