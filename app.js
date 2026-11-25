@@ -958,14 +958,15 @@ function pgRemarketing(){
 /* =========================================================
    Kommo: atendimento, leads no CRM, WhatsApp e custos, remarketing
    ========================================================= */
-var KSUB = [['atendimento','Atendimento'],['leads','Leads no CRM'],['whatsapp','WhatsApp e custos'],['remarketing','Remarketing']];
+var KSUB = [['atendimento','Vigia do atendimento'],['leads','Leads no CRM'],['whatsapp','WhatsApp e custos'],['remarketing','Remarketing']];
 var usd2 = new Intl.NumberFormat('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
 function usd(v){ return v === null || v === undefined ? '—' : 'US$ ' + usd2.format(v); }
 function kIni(){ var K = D.kommo; if (!K || !K.meses) return null; var ms = Object.keys(K.meses).sort(); return ms.length ? ms[0] + '-01' : null; }
 function kFim(){ var K = D.kommo, f = null; if (!K || !K.meses) return null; Object.keys(K.meses).forEach(function(m){ Object.keys(K.meses[m].dias || {}).forEach(function(d){ if (!f || d > f) f = d; }); }); return f; }
 function kAgg(ini, fim){
   var a = {dias:0, novos:0, anuncio:0, fora:0, b2b:0, agendou:0, perdido:0, aberto:0, esp:{}, perdas:{}, resp:[], resp_c:[], sem_resp:0, so_robo:0,
-    recebidas:0, equipe:0, automaticas:0, wa_env:0, wa_ent:0, wa_custo:0, wa_dias:0, serie:[]};
+    recebidas:0, equipe:0, automaticas:0, wa_env:0, wa_ent:0, wa_custo:0, wa_dias:0, serie:[],
+    bot_s:[], hum:[], hum_c:[], hum_dentro:[], sumiu:0, sem_hum:0, conversou:0, vigia_dias:0};
   var K = D.kommo; if (!K || !K.meses) return a;
   for (var d = ini; d <= fim; d = addD(d, 1)){
     var m = K.meses[d.slice(0, 7)], x = m && m.dias && m.dias[d]; if (!x) continue;
@@ -974,6 +975,7 @@ function kAgg(ini, fim){
     Object.keys(x.esp || {}).forEach(function(e){ var v = x.esp[e], t = a.esp[e] = a.esp[e] || [0, 0, 0]; if (typeof v === 'number') t[0] += v; else { t[0] += v[0]; t[1] += v[1]; t[2] += v[2]; } });
     Object.keys(x.perdas || {}).forEach(function(e){ a.perdas[e] = (a.perdas[e] || 0) + x.perdas[e]; });
     a.resp = a.resp.concat(x.resp || []); a.resp_c = a.resp_c.concat(x.resp_c || []);
+    if (x.hum){ a.vigia_dias++; ['bot_s','hum','hum_c','hum_dentro'].forEach(function(k){ a[k] = a[k].concat(x[k] || []); }); ['sumiu','sem_hum','conversou'].forEach(function(k){ a[k] += x[k] || 0; }); }
     if (x.wa){ a.wa_env += x.wa[0]; a.wa_ent += x.wa[1]; a.wa_custo += x.wa[2]; a.wa_dias++; }
   }
   return a;
@@ -1027,21 +1029,85 @@ function pgKommo(){
 var EXPED = 'seg a sex, das 8h às 18h';
 function fmtUtil(m){ if (m === null || m === undefined) return '—'; if (m < 60) return nf0.format(m) + ' min'; return nf1.format(m / 60) + ' h'; }
 function kAtendimento(f, a, b, bRot, A){
-  var med = mediana(a.resp), medB = b ? mediana(b.resp) : null;
-  var g = h('div', {class:'grid g4'});
-  g.appendChild(tile({hero:true, rot:'Primeira resposta da equipe', v:med, b:b ? medB : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'mediana, contando só o horário de atendimento'}));
-  g.appendChild(tile({rot:'Respondidos em até 15 min', v:pctAte(a.resp, 15), b:b ? pctAte(b.resp, 15) : undefined, bRot:bRot, tipo:'pct', pp:true, nota:'contando só o horário de atendimento'}));
-  g.appendChild(tile({rot:'Sem resposta da equipe', v:a.sem_resp, b:b ? b.sem_resp : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:'após um dia útil' + (a.so_robo ? ' · ' + a.so_robo + ' receberam só mensagens automáticas' : '')}));
-  g.appendChild(tile({rot:'Chegaram fora do horário', v:a.fora, b:b ? b.fora : undefined, bRot:bRot, tipo:'n', sentido:'neutro', nota:pctTxt(a.fora, a.novos) + ' dos leads novos: noite, fim de semana ou feriado'}));
+  var temV = a.vigia_dias > 0, bV = b && b.vigia_dias > 0 ? b : null;
+  // 1) Como medimos
+  var c0 = card('Como o painel mede o tempo de resposta', 'O robô responde na hora. O que importa é quanto a equipe leva depois que o lead pede atendimento.');
+  var passos = [
+    ['1', 'O lead escreve', 'Pelo anúncio, pelo Instagram ou direto no WhatsApp.', ''],
+    ['2', 'O robô responde', 'Em segundos: boas-vindas e a pergunta sobre o que a pessoa procura. Isso deixa a primeira resposta do Kommo quase zerada, mas ainda não é atendimento.', 'vig-auto'],
+    ['3', 'O lead responde ao robô', 'É aqui que ele pede uma pessoa. O relógio da equipe começa a contar.', 'vig-inicio'],
+    ['4', 'Uma pessoa da equipe responde', 'O tempo entre o passo 3 e o passo 4 é o tempo de resposta da equipe, contado em horário de atendimento.', 'vig-fim']
+  ];
+  var tl = h('div', {class:'vig-linha'});
+  passos.forEach(function(p, i){
+    tl.appendChild(h('div', {class:'vig-passo ' + p[3]}, [h('span', {class:'vig-num', text:p[0]}), h('b', {text:p[1]}), h('p', {text:p[2]})]));
+    if (i < passos.length - 1) tl.appendChild(h('span', {class:'vig-seta', 'aria-hidden':'true', text:'→'}));
+  });
+  c0.appendChild(tl);
+  c0.appendChild(h('ul', {class:'vig-regras'}, [
+    h('li', {text:'Se uma pessoa da equipe entra antes de o lead responder ao robô, o tempo conta desde a primeira mensagem do lead.'}),
+    h('li', {text:'Se o lead não responde ao robô em 24 horas, ele não entra na conta da equipe: aparece como “não respondeu ao robô”, um sinal sobre a qualidade do lead.'}),
+    h('li', {text:'Horário de atendimento: ' + EXPED + '. Noites, fins de semana e feriados não contam no tempo da equipe. Mensagens automáticas e modelos não contam como resposta.'})
+  ]));
+  f.appendChild(c0);
+
+  // 2) Indicadores
+  var g = h('div', {class:'grid g4 mt'});
+  if (temV){
+    g.appendChild(tile({hero:true, rot:'Equipe responde em', v:mediana(a.hum), b:bV ? mediana(bV.hum) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'mediana, do passo 3 ao passo 4, em horário de atendimento'}));
+    var bs = mediana(a.bot_s);
+    g.appendChild(tile({rot:'Robô responde em', txt:bs === null ? '—' : (bs < 60 ? nf0.format(bs) + ' s' : fmtMin(Math.round(bs / 60))), nota:'mediana do passo 1 ao passo 2'}));
+    g.appendChild(tile({rot:'Equipe respondeu em até 15 min', v:pctAte(a.hum, 15), b:bV ? pctAte(bV.hum, 15) : undefined, bRot:bRot, tipo:'pct', pp:true, nota:'dos leads que conversaram e foram respondidos'}));
+    g.appendChild(tile({rot:'Pediram atendimento e ficaram sem resposta', v:a.sem_hum, b:bV ? bV.sem_hum : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:pctTxt(a.sem_hum, a.conversou) + ' de quem respondeu ao robô · após um dia útil'}));
+  } else {
+    g.appendChild(tile({hero:true, rot:'Primeira resposta da equipe', v:mediana(a.resp), b:b ? mediana(b.resp) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'medida antiga: desde a primeira mensagem do lead'}));
+    g.appendChild(tile({rot:'Respondidos em até 15 min', v:pctAte(a.resp, 15), b:b ? pctAte(b.resp, 15) : undefined, bRot:bRot, tipo:'pct', pp:true}));
+    g.appendChild(tile({rot:'Sem resposta da equipe', v:a.sem_resp, b:b ? b.sem_resp : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:'após um dia útil'}));
+    g.appendChild(tile({rot:'Chegaram fora do horário', v:a.fora, tipo:'n', sentido:'neutro', nota:pctTxt(a.fora, a.novos) + ' dos leads novos'}));
+  }
   f.appendChild(g);
 
+  // 3) Funil da conversa e diagnóstico
+  if (temV){
+    var row0 = h('div', {class:'grid g2 mt'});
+    var escreveram = a.conversou + a.sumiu;
+    var cf = card('Onde a conversa para', 'Leads novos que escreveram para a clínica no período');
+    barrasH(cf, [
+      {l:'Escreveram', v:escreveram},
+      {l:'Responderam ao robô', sub:pctTxt(a.conversou, escreveram) + ' de quem escreveu', v:a.conversou},
+      {l:'Foram respondidos pela equipe', sub:pctTxt(a.hum.length, a.conversou) + ' de quem respondeu ao robô', v:a.hum.length},
+      {l:'Agendaram', sub:pctTxt(a.agendou, escreveram) + ' de quem escreveu, pela etapa no Kommo', v:a.agendou, cls:'cl'}
+    ]);
+    cf.appendChild(h('p', {class:'nota', text:'Leads de hoje e de ontem ainda podem avançar. Agendaram inclui leads que escreveram e os que a clínica chamou primeiro.'}));
+    var LEAD_RX = /pre[cç]o|valor|localiza|dist[aâ]ncia|n[aã]o [eé] lead|sem interesse|desist|outr[ao] (cl[ií]nica|lugar)|n[aã]o responde|parou de responder|curios|fora do perfil|conv[eê]nio|plano de sa[uú]de/i;
+    var pl = 0, po = 0; Object.keys(a.perdas).forEach(function(k){ if (LEAD_RX.test(k)) pl += a.perdas[k]; else po += a.perdas[k]; });
+    var lentos = a.hum.filter(function(v){ return v > 60; }).length;
+    var cd = card('Atendimento ou qualidade do lead?', 'Sinais dos dois lados, no mesmo período');
+    cd.appendChild(h('div', {class:'vig-lados'}, [
+      h('div', {class:'vig-lado'}, [h('h4', {text:'Do lado do lead'}),
+        h('div', {class:'linha'}, [h('span', {text:'Não responderam ao robô'}), h('b', {text:fmt(a.sumiu) + ' · ' + pctTxt(a.sumiu, escreveram)})]),
+        h('div', {class:'linha'}, [h('span', {text:'Perdidos por preço, distância, sem interesse ou “não é lead”'}), h('b', {text:fmt(pl)})])]),
+      h('div', {class:'vig-lado'}, [h('h4', {text:'Do lado do atendimento'}),
+        h('div', {class:'linha'}, [h('span', {text:'Pediram atendimento e ficaram sem resposta'}), h('b', {text:fmt(a.sem_hum) + ' · ' + pctTxt(a.sem_hum, a.conversou)})]),
+        h('div', {class:'linha'}, [h('span', {text:'Respondidos depois de 1 hora útil'}), h('b', {text:fmt(lentos) + ' · ' + pctTxt(lentos, a.hum.length)})]),
+        h('div', {class:'linha'}, [h('span', {text:'Perdidos sem motivo registrado ou por outro motivo'}), h('b', {text:fmt(po)})])])
+    ]));
+    cd.appendChild(h('p', {class:'nota', text:'Os números de tempo e de resposta vêm de todas as conversas. A leitura de cada conversa, com qualidade das respostas e oportunidades perdidas, está na auditoria logo abaixo.'}));
+    row0.appendChild(cf); row0.appendChild(cd); f.appendChild(row0);
+  }
+
+  // 4) Auditoria qualitativa
+  kAuditoria(f, A);
+
+  // 5) Distribuição, mensagens e evolução
+  var serieT = temV ? a.hum : a.resp;
   var row = h('div', {class:'grid g2 mt'});
-  var c1 = card('Quanto a equipe levou para responder', 'Tempo em horário de atendimento até a primeira mensagem de uma pessoa da equipe');
+  var c1 = card('Quanto a equipe levou para responder', temV ? 'Do passo 3 ao passo 4, em horário de atendimento' : 'Tempo em horário de atendimento até a primeira mensagem de uma pessoa da equipe');
   var FX = [[5, 'Até 5 min'], [15, '5 a 15 min'], [60, '15 min a 1 h'], [240, '1 a 4 h'], [600, '4 h a 1 dia útil'], [1e9, 'Mais de 1 dia útil']];
   var ant = -1;
-  barrasH(c1, FX.map(function(x){ var lo = ant; ant = x[0]; var n = a.resp.filter(function(v){ return v > lo && v <= x[0]; }).length;
-    return {l:x[1], sub:pctTxt(n, a.resp.length) + ' dos respondidos', v:n}; }));
-  c1.appendChild(h('p', {class:'nota', text:nf0.format(a.resp.length) + ' leads respondidos pela equipe. Em tempo corrido (com noites e fins de semana), a mediana foi de ' + fmtMin(mediana(a.resp_c)) + '. Robôs e mensagens automáticas não contam como resposta.'}));
+  barrasH(c1, FX.map(function(x){ var lo = ant; ant = x[0]; var n = serieT.filter(function(v){ return v > lo && v <= x[0]; }).length;
+    return {l:x[1], sub:pctTxt(n, serieT.length) + ' dos respondidos', v:n}; }));
+  c1.appendChild(h('p', {class:'nota', text:nf0.format(serieT.length) + ' leads respondidos pela equipe. ' + (temV ? 'Só os pedidos feitos dentro do horário: mediana de ' + fmtMin(mediana(a.hum_dentro)) + '. Em tempo corrido, com noites e fins de semana: ' + fmtMin(mediana(a.hum_c)) + '.' : 'Em tempo corrido, a mediana foi de ' + fmtMin(mediana(a.resp_c)) + '.')}));
   var c2 = card('Mensagens no período', 'Conversas de leads no WhatsApp e no Instagram');
   barrasH(c2, [
     {l:'Recebidas dos leads', v:a.recebidas, b:b ? b.recebidas : undefined, bRot:bRot},
@@ -1051,11 +1117,63 @@ function kAtendimento(f, a, b, bRot, A){
   row.appendChild(c1); row.appendChild(c2); f.appendChild(row);
 
   var porDia = ndias(A.ini, A.ate || A.fim) <= 45;
-  var c3 = card('Respondidos em até 15 minutos', 'Por ' + (porDia ? 'dia de chegada do lead' : 'semana') + ', contando só o horário de atendimento');
-  var pts = baldes({ini:A.ini, fim:A.ate || A.fim}).map(function(p){ var x = kAgg(p.ini, p.fim); return {l:p.l, t:p.t + ' · ' + x.resp.length + ' leads respondidos · mediana ' + fmtUtil(mediana(x.resp)), v:x.resp.length >= 3 ? pctAte(x.resp, 15) : null}; });
+  var c3 = card('Equipe respondeu em até 15 minutos', 'Por ' + (porDia ? 'dia de chegada do lead' : 'semana') + ', em horário de atendimento');
+  var pts = baldes({ini:A.ini, fim:A.ate || A.fim}).map(function(p){ var x = kAgg(p.ini, p.fim), s2 = x.vigia_dias ? x.hum : x.resp; return {l:p.l, t:p.t + ' · ' + s2.length + ' leads respondidos · mediana ' + fmtUtil(mediana(s2)), v:s2.length >= 3 ? pctAte(s2, 15) : null}; });
   colunas(c3, pts, {nome:'Respondidos em até 15 min', tipo:'pct', rotulos:pts.length <= 16, altura:190, cor:'#D8C3A3'});
-  c3.appendChild(h('p', {class:'nota', text:'Horário de atendimento considerado: ' + EXPED + ', que é quando a equipe responde no Kommo. Feriados e dias sem atividade da equipe não contam. Dias com menos de 3 leads respondidos ficam sem barra.'}));
+  c3.appendChild(h('p', {class:'nota', text:'Dias com menos de 3 leads respondidos ficam sem barra. Feriados e dias sem atividade da equipe não contam.'}));
   f.appendChild(h('div', {class:'mt'}, [c3]));
+}
+
+// Auditoria qualitativa: leitura de uma amostra de conversas, só com resultados agregados
+function kAuditoria(f, A){
+  var AU = (D.kommo && D.kommo.auditorias) || {}, ini = A.ini, fim = A.ate || A.fim;
+  var ids = Object.keys(AU).sort().reverse();
+  var x = null; ids.some(function(k){ var y = AU[k]; if (y.de <= fim && y.ate >= ini){ x = y; return true; } return false; });
+  var c = card('Qualidade das conversas', x ? 'Auditoria de ' + x.amostra + ' conversas de ' + dm(x.de) + ' a ' + dm(x.ate) + ', lidas uma a uma' : 'Leitura de uma amostra de conversas, uma a uma');
+  if (!x){
+    c.appendChild(h('p', {class:'vazio', text:ids.length ? 'Não há auditoria para este período. A mais recente cobre ' + dm(AU[ids[0]].de) + ' a ' + dm(AU[ids[0]].ate) + '.' : 'A primeira auditoria ainda não foi feita.'}));
+    f.appendChild(h('div', {class:'mt'}, [c])); return;
+  }
+  if (x.resumo && x.resumo.length) c.appendChild(h('div', {class:'vig-resumo'}, x.resumo.map(function(t){ return h('p', {text:t}); })));
+  var dg = x.diagnostico || {};
+  var tot = (dg.lead_bom_atend_bom || 0) + (dg.lead_bom_atend_falhou || 0) + (dg.lead_fraco || 0) + (dg.sem_dados || 0);
+  c.appendChild(h('h4', {class:'vig-sub', text:'O que decidiu cada conversa'}));
+  var quad = h('div', {class:'vig-quad'});
+  [['lead_bom_atend_bom', 'Lead conversou e o atendimento conduziu bem', 'Respondeu, entendeu o caso e convidou para a consulta', 'ok'],
+   ['lead_bom_atend_falhou', 'Lead conversou e o atendimento deixou brecha', 'Demora, pergunta sem resposta ou falta de convite', 'ruim'],
+   ['lead_fraco', 'Lead não engajou ou não tinha perfil', 'Qualidade do lead', 'neutro'],
+   ['sem_dados', 'Não se aplica', 'Não era lead novo', 'neutro']].forEach(function(q){
+    var n = dg[q[0]] || 0;
+    quad.appendChild(h('div', {class:'vig-q vig-' + q[3]}, [h('span', {class:'vig-qn', text:fmt(n)}), h('b', {text:q[1]}), h('small', {text:q[2] + ' · ' + pctTxt(n, tot)})]));
+  });
+  c.appendChild(quad);
+  var row = h('div', {class:'grid g2'});
+  var c1 = h('div', null, [h('h4', {class:'vig-sub', text:'Qualidade das respostas'})]);
+  c1.appendChild(tabela(['Critério', 'Cumpriu', 'Conversas'], (x.criterios || []).map(function(k){ return {cel:[k[0], pctTxt(k[1], k[2]), fmt(k[2])]}; }), null, {esq:[0]}));
+  var c2 = h('div', null, [h('h4', {class:'vig-sub', text:'Brechas que deixaram passar'})]);
+  barrasH(c2, (x.brechas || []).map(function(k){ return {l:k[0], sub:pctTxt(k[1], x.amostra) + ' das conversas', v:k[1], cls:'cl'}; }));
+  row.appendChild(c1); row.appendChild(c2); c.appendChild(row);
+  if ((x.por_esp && x.por_esp.length) || (x.lead_motivos && x.lead_motivos.length)){
+    var row2 = h('div', {class:'grid g2'});
+    var c3 = h('div', null, [h('h4', {class:'vig-sub', text:'Por especialidade'})]);
+    c3.appendChild(tabela(['Especialidade', 'Lidas', 'Conduziu bem', 'Deixou brecha', 'Lead não engajou'], (x.por_esp || []).map(function(k){
+      return {cel:[k[0], fmt(k[1]), fmt(k[2]), fmt(k[3]), fmt(k[4])]}; }), null, {esq:[0]}));
+    c3.appendChild(h('p', {class:'nota', text:'Poucas conversas por especialidade: serve para ver o padrão, não para comparar percentuais.'}));
+    var c4 = h('div', null, [h('h4', {class:'vig-sub', text:'Por que o lead não engajou'})]);
+    var tl = 0; (x.lead_motivos || []).forEach(function(k){ tl += k[1]; });
+    barrasH(c4, (x.lead_motivos || []).map(function(k){ return {l:k[0], sub:pctTxt(k[1], tl) + ' destes leads', v:k[1]}; }));
+    row2.appendChild(c3); row2.appendChild(c4); c.appendChild(row2);
+  }
+  if (x.conferir && x.conferir.length){
+    c.appendChild(h('h4', {class:'vig-sub', text:'Para conferir com a clínica'}));
+    c.appendChild(h('ul', {class:'vig-regras'}, x.conferir.map(function(t){ return h('li', {text:t}); })));
+  }
+  if (x.exemplos && x.exemplos.length){
+    c.appendChild(h('h4', {class:'vig-sub', text:'Exemplos (resumidos, sem dados dos pacientes)'}));
+    c.appendChild(h('div', {class:'vig-ex'}, x.exemplos.map(function(e){ return h('div', {class:'vig-exc'}, [h('b', {text:e[0]}), h('p', {text:e[1]})]); })));
+  }
+  c.appendChild(h('p', {class:'nota', text:(x.metodo || 'Amostra sorteada por especialidade.') + ' Nenhuma mensagem, nome ou telefone é guardado no painel.'}));
+  f.appendChild(h('div', {class:'mt'}, [c]));
 }
 
 function kLeads(f, a, b, bRot){
