@@ -1934,12 +1934,14 @@ function rEssencial(f, R, NUM){
     }
     if (X.gastos){
       c.appendChild(h('h4', {class:'vig-sub', text:X.gastos_titulo || 'Quanto se gasta por mês'}));
-      c.appendChild(h('div', {class:'es-duo es-duo-top'}, X.gastos.map(function(g){
+      [X.gastos, X.gastos_extra || []].forEach(function(GG, gi){ if (!GG.length) return;
+      c.appendChild(h('div', {class:'es-duo es-duo-top' + (gi ? ' es-duo-extra' : '')}, GG.map(function(g){
         var pg = h('div', {class:'es-painel es-gasto'}, [h('h5', {text:g.titulo})]);
         g.linhas.forEach(function(l){ pg.appendChild(h('div', {class:'es-gl' + (l[2] ? ' es-gl-' + l[2] : '')}, [h('span', {text:l[0]}), h('b', {text:l[1]})])); });
         if (g.nota) pg.appendChild(h('p', {class:'es-nota', text:g.nota}));
         return pg;
       })));
+      });
     }
     if (X.custo){
       var mx = Math.max.apply(null, X.custo.barras.map(function(b){ return b[1]; }));
