@@ -1928,6 +1928,12 @@ function rEssencial(f, R, NUM){
       X.custo.barras.forEach(function(b){ pcu.appendChild(h('div', {class:'es-barra'}, [h('span', {class:'es-bl', text:b[0]}), h('div', {class:'es-bt'}, [h('div', {class:'es-bf', style:'width:' + Math.max(4, b[1] / mx * 100) + '%;background:' + (b[4] || '#9D7B3E')})]), h('b', {text:b[2]}), b[3] ? h('small', {text:b[3]}) : null])); });
       if (X.custo.nota) pcu.appendChild(h('p', {class:'es-nota', text:X.custo.nota}));
       var d2 = h('div', {class:'es-duo'}, [pcu]);
+      if (X.medir){
+        var pm = h('div', {class:'es-painel'}, [h('h4', {class:'vig-sub', text:X.medir_titulo || 'O que a gente vai medir'})]);
+        pm.appendChild(h('div', {class:'es-pend'}, X.medir.map(function(t){ return h('div', {class:'es-p'}, [h('span', {class:'es-pi', text:'→'}), h('span', {text:t})]); })));
+        if (X.medir_nota) pm.appendChild(h('p', {class:'es-nota', text:X.medir_nota}));
+        d2.appendChild(pm);
+      }
       if (X.saldo){
         var ps = h('div', {class:'es-painel'}, [h('h4', {class:'vig-sub', text:X.saldo_titulo || 'Agendamentos por mês, no ritmo de hoje'})]);
         ps.appendChild(h('div', {class:'es-saldo'}, X.saldo.map(function(x){ return esNum(x[0], x[1], x[2], x[3]); })));
