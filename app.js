@@ -1050,7 +1050,6 @@ function kAtendimento(f, a, b, bRot, A){
   c0.appendChild(h('ul', {class:'vig-regras'}, [
     h('li', {text:'Se uma pessoa da equipe entra antes de o lead responder ao robô, o tempo conta desde a primeira mensagem do lead.'}),
     h('li', {text:'Se o lead não responde ao robô em 24 horas, ele não entra na conta da equipe: aparece como “não respondeu ao robô” e entra na estratégia de recontato.'}),
-    h('li', {text:'Entram só dermatologia, capilar e blefaroplastia, as especialidades com anúncio. Fornecedores e contatos que ainda estão no Funil Geral ficam de fora.'}),
     h('li', {text:'Se o lead respondeu ao robô, recebeu os follow-ups e não respondeu mais, ele não seguiu: não conta como “sem resposta”.'}),
     h('li', {text:'Horário de atendimento: ' + EXPED + '. Noites, fins de semana e feriados não contam no tempo da equipe. Mensagens automáticas e modelos não contam como resposta.'})
   ]));
@@ -1063,7 +1062,7 @@ function kAtendimento(f, a, b, bRot, A){
     var bs = mediana(a.bot_s);
     g.appendChild(tile({rot:'Robô responde em', txt:bs === null ? '—' : (bs < 60 ? nf0.format(bs) + ' s' : fmtMin(Math.round(bs / 60))), nota:'mediana do passo 1 ao passo 2'}));
     g.appendChild(tile({rot:'Equipe respondeu em até 15 min', v:pctAte(a.hum, 15), b:bV ? pctAte(bV.hum, 15) : undefined, bRot:bRot, tipo:'pct', pp:true, nota:'dos leads que conversaram e foram respondidos'}));
-    g.appendChild(tile({rot:'Pediram atendimento e ficaram sem resposta', v:a.sem_hum, b:bV ? bV.sem_hum : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:a.alvo_dias ? 'a última mensagem do lead ficou sem resposta de ninguém por mais de um dia útil (pode incluir fornecedores que caem no funil da especialidade)' : pctTxt(a.sem_hum, a.conversou) + ' de quem respondeu ao robô · após um dia útil. Conta antiga: ainda inclui fornecedores e quem não seguiu depois do follow-up.'}));
+    g.appendChild(tile({rot:'Pediram atendimento e ficaram sem resposta', v:a.sem_hum, b:bV ? bV.sem_hum : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:a.alvo_dias ? 'a última mensagem do lead ficou sem resposta de ninguém por mais de um dia útil (inclui fornecedores e currículos)' : pctTxt(a.sem_hum, a.conversou) + ' de quem respondeu ao robô · após um dia útil. Conta antiga: ainda inclui fornecedores e quem não seguiu depois do follow-up.'}));
   } else {
     g.appendChild(tile({hero:true, rot:'Primeira resposta da equipe', v:mediana(a.resp), b:b ? mediana(b.resp) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'medida antiga: desde a primeira mensagem do lead'}));
     g.appendChild(tile({rot:'Respondidos em até 15 min', v:pctAte(a.resp, 15), b:b ? pctAte(b.resp, 15) : undefined, bRot:bRot, tipo:'pct', pp:true}));
@@ -1076,13 +1075,14 @@ function kAtendimento(f, a, b, bRot, A){
   if (temV){
     var row0 = h('div', {class:'grid g2 mt'});
     var escreveram = a.conversou + a.sumiu;
-    var cf = card('Onde a conversa para', a.alvo_dias ? 'Leads novos de dermatologia, capilar e blefaroplastia que escreveram no período' : 'Leads novos que escreveram para a clínica no período');
+    var cf = card('Onde a conversa para', 'Leads novos que escreveram para a clínica no período');
     barrasH(cf, [
       {l:'Escreveram', v:escreveram},
       {l:'Responderam ao robô', sub:pctTxt(a.conversou, escreveram) + ' de quem escreveu', v:a.conversou},
       {l:'Foram respondidos pela equipe', sub:pctTxt(a.hum.length, a.conversou) + ' de quem respondeu ao robô', v:a.hum.length},
-      {l:'Agendaram', sub:pctTxt(a.alvo_dias ? a.agendou_a : a.agendou, escreveram) + ' de quem escreveu, pela etapa no Kommo', v:a.alvo_dias ? a.agendou_a : a.agendou, cls:'cl'}
+      {l:'Agendaram', sub:pctTxt(a.agendou, escreveram) + ' de quem escreveu, pela etapa no Kommo', v:a.agendou, cls:'cl'}
     ]);
+    if (a.alvo_dias) cf.appendChild(h('div', {class:'rn-alvo'}, [h('b', {text:'Especialidades com anúncio (dermatologia, capilar e blefaroplastia)'}), h('span', {text:fmt(a.novos_a) + ' leads novos (' + pctTxt(a.novos_a, a.novos) + ' do total) · ' + pctTxt(a.fora_a, a.novos_a) + ' chegaram fora do horário · ' + fmt(a.agendou_a) + ' agendaram (' + pctTxt(a.agendou_a, a.novos_a) + ')'})]));
     cf.appendChild(h('p', {class:'nota', text:'Leads de hoje e de ontem ainda podem avançar. Agendaram inclui leads que escreveram e os que a clínica chamou primeiro.'}));
     var LEAD_RX = /pre[cç]o|valor|localiza|dist[aâ]ncia|n[aã]o [eé] lead|sem interesse|desist|outr[ao] (cl[ií]nica|lugar)|n[aã]o responde|parou de responder|curios|fora do perfil|conv[eê]nio|plano de sa[uú]de/i;
     var pl = 0, po = 0; Object.keys(a.perdas).forEach(function(k){ if (LEAD_RX.test(k)) pl += a.perdas[k]; else po += a.perdas[k]; });
