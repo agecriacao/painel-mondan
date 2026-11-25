@@ -1245,6 +1245,16 @@ function kAuditoria(f, A){
   c1.appendChild(tabela(['Critério', 'Cumpriu', 'Conversas'], (x.criterios || []).map(function(k){ return {cel:[k[0], pctTxt(k[1], k[2]), fmt(k[2])]}; }), null, {esq:[0]}));
   var c2 = h('div', null, [h('h4', {class:'vig-sub', text:'Brechas que deixaram passar'})]);
   barrasH(c2, (x.brechas || []).map(function(k){ return {l:k[0], sub:pctTxt(k[1], x.amostra) + ' das conversas', v:k[1], cls:'cl'}; }));
+  (x.brechas || []).forEach(function(k){
+    var e = k[2]; if (!e || !e.conversa) return;
+    var kids = [h('p', {class:'nota', style:'margin:6px 0 8px', text:e.resumo || ''})];
+    kids.push(h('div', {class:'wa'}, e.conversa.map(function(c){
+      if (c[0] === 'X') return h('div', {class:'wa-x', text:c[2]});
+      return h('div', {class:'wa-m wa-' + c[0]}, [h('span', {class:'wa-q', text:{L:'Lead', R:'Robô (automática)', E:'Equipe'}[c[0]]}), h('p', {text:c[2]}), h('small', {text:c[1]})]);
+    })));
+    if (e.id) kids.push(h('a', {class:'rn-kommo', href:'https://viniciusbcunha.kommo.com/leads/detail/' + e.id, target:'_blank', rel:'noopener', text:'Abrir no Kommo (lead ' + e.id + ') ↗'}));
+    c2.appendChild(h('details', {class:'rn-chat br-chat'}, [h('summary', {text:'Ver a conversa: ' + k[0].toLowerCase()})].concat(kids)));
+  });
   row.appendChild(c1); row.appendChild(c2); c.appendChild(row);
   if ((x.por_esp && x.por_esp.length) || (x.lead_motivos && x.lead_motivos.length)){
     var row2 = h('div', {class:'grid g2'});
