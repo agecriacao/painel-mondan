@@ -1063,7 +1063,7 @@ function kAtendimento(f, a, b, bRot, A){
     var bs = mediana(a.bot_s);
     g.appendChild(tile({rot:'Robô responde em', txt:bs === null ? '—' : (bs < 60 ? nf0.format(bs) + ' s' : fmtMin(Math.round(bs / 60))), nota:'mediana do passo 1 ao passo 2'}));
     g.appendChild(tile({rot:'Equipe respondeu em até 15 min', v:pctAte(a.hum, 15), b:bV ? pctAte(bV.hum, 15) : undefined, bRot:bRot, tipo:'pct', pp:true, nota:'dos leads que conversaram e foram respondidos'}));
-    g.appendChild(tile({rot:'Pediram atendimento e ficaram sem resposta', v:a.sem_hum, b:bV ? bV.sem_hum : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:a.alvo_dias ? 'a última mensagem do lead ficou sem resposta de ninguém por mais de um dia útil' : pctTxt(a.sem_hum, a.conversou) + ' de quem respondeu ao robô · após um dia útil. Conta antiga: ainda inclui fornecedores e quem não seguiu depois do follow-up.'}));
+    g.appendChild(tile({rot:'Pediram atendimento e ficaram sem resposta', v:a.sem_hum, b:bV ? bV.sem_hum : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:a.alvo_dias ? 'a última mensagem do lead ficou sem resposta de ninguém por mais de um dia útil (pode incluir fornecedores que caem no funil da especialidade)' : pctTxt(a.sem_hum, a.conversou) + ' de quem respondeu ao robô · após um dia útil. Conta antiga: ainda inclui fornecedores e quem não seguiu depois do follow-up.'}));
   } else {
     g.appendChild(tile({hero:true, rot:'Primeira resposta da equipe', v:mediana(a.resp), b:b ? mediana(b.resp) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'medida antiga: desde a primeira mensagem do lead'}));
     g.appendChild(tile({rot:'Respondidos em até 15 min', v:pctAte(a.resp, 15), b:b ? pctAte(b.resp, 15) : undefined, bRot:bRot, tipo:'pct', pp:true}));
