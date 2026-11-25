@@ -644,3 +644,57 @@ body.apresentar .rn-rot-lab{font-size:17px}
 .tx-acoes .tag{cursor:pointer}
 .tx-rod{margin:4px 0 0}
 .tx-rod:empty{display:none}
+/* Reunião · visão essencial */
+.rn-barra-d{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.es-sec .es-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.es-n{border:1px solid #E6DBC9;border-radius:14px;padding:14px 16px;background:#FFFCF7;display:flex;flex-direction:column;gap:2px;min-width:0}
+.es-n .es-nv{font-size:34px;font-weight:700;line-height:1.1;color:var(--madeira,#3B1E19);letter-spacing:-.5px}
+.es-n b{font-size:14px;font-weight:600;color:var(--madeira,#3B1E19)}
+.es-n small{font-size:12.5px;color:#8A7F72}
+.es-ok .es-nv{color:#3F7A4E}.es-ruim .es-nv{color:#A8553A}.es-at .es-nv{color:#9D7B3E}
+.es-ok{border-top:3px solid #3F7A4E}.es-ruim{border-top:3px solid #A8553A}.es-at{border-top:3px solid #C9A227}
+.es-duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-top:16px}
+.es-painel{border:1px solid #EFE7DA;border-radius:14px;padding:4px 16px 14px;background:#fff}
+.es-pilha{display:flex;height:28px;border-radius:8px;overflow:hidden;gap:2px;margin:6px 0 10px}
+.es-pilha span{display:block;min-width:4px}
+.es-leg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:#5A4A40}
+.es-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.es-leg b{color:var(--madeira,#3B1E19);margin-right:2px}
+.es-nota{font-size:12.5px;color:#8A7F72;margin:10px 0 0;line-height:1.45}
+.es-quad{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.es-quad span{width:26px;height:26px;border-radius:6px;display:block}
+.es-pend{display:flex;flex-direction:column}
+.es-p{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #EFE7DA;font-size:14.5px;color:var(--madeira,#3B1E19)}
+.es-p:first-child{border-top:0}
+.es-p > span:nth-child(2){flex:1}
+.es-pi{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#F3EBDD;color:#9D7B3E;font-size:12px;flex:none}
+.es-p-ok .es-pi{background:#E3EFE5;color:#3F7A4E}
+.es-p-ok > span:nth-child(2){color:#8A7F72}
+.es-cartas{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.es-c{border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-height:84px}
+.es-c .es-cn{font-size:26px;font-weight:700;line-height:1.1}
+.es-c b{font-size:13.5px;font-weight:600;line-height:1.35}
+.es-m{background:#FBF1EC}.es-m .es-cn{color:#A8553A}.es-m b{color:#5A2E1F}
+.es-o{background:#EEF4EC}.es-o .es-cn{color:#3F7A4E}.es-o b{color:#22402A}
+.es-funil{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.es-funil .es-n{flex:1 1 150px}
+.es-seta{align-self:center;color:#C2B280;font-size:22px}
+.es-barra{display:grid;grid-template-columns:150px 1fr auto;align-items:center;gap:6px 12px;margin:10px 0}
+.es-barra .es-bl{font-size:13.5px;color:var(--madeira,#3B1E19)}
+.es-barra .es-bt{height:22px;background:#F6F0E6;border-radius:6px;overflow:hidden}
+.es-barra .es-bf{height:100%;border-radius:6px}
+.es-barra b{font-size:18px;color:var(--madeira,#3B1E19)}
+.es-barra small{grid-column:2/4;font-size:12px;color:#8A7F72;margin-top:-6px}
+.es-saldo{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
+.es-saldo .es-n .es-nv{font-size:28px}
+.es-prop{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.es-pp{background:#3B1E19;color:#FAF0E6;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.es-pp b{font-size:20px;color:#E8CF9A}
+.es-pp span{font-size:13.5px;line-height:1.4}
+.es-dec{margin:4px 0 0;padding-left:22px;font-size:14.5px;line-height:1.8;color:var(--madeira,#3B1E19)}
+.es-vertudo{margin-top:14px}
+.es-estr{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.es-e{display:flex;align-items:center;gap:10px;border:1px solid #E6DBC9;border-radius:12px;padding:12px 14px;background:#FFFCF7}
+.es-e b{flex:1;font-size:14px;line-height:1.35;color:var(--madeira,#3B1E19)}
+body.apresentar .es-n .es-nv{font-size:42px}
+@media (max-width:640px){.es-barra{grid-template-columns:1fr auto}.es-barra .es-bt{grid-column:1/3;grid-row:2}.es-barra small{grid-column:1/3}.es-saldo{grid-template-columns:1fr}}

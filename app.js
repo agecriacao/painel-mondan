@@ -1753,7 +1753,13 @@ function pgReunioes(){
   });
   var bAp = h('button', {type:'button', class:'rn-apr', text:document.body.classList.contains('apresentar') ? 'Sair da apresentação' : 'Modo apresentação'});
   bAp.addEventListener('click', function(){ document.body.classList.toggle('apresentar'); render(); window.scrollTo({top:0}); });
-  f.appendChild(h('div', {class:'rn-barra'}, [chips, bAp]));
+  var essencial = sel.rnModo !== 'completo';
+  var bModo = h('div', {class:'tabs rn-modo', role:'tablist', 'aria-label':'Visão'}, [['essencial','Essencial'],['completo','Completo']].map(function(m){
+    var bb = h('button', {type:'button', role:'tab', 'aria-selected':(essencial ? 'essencial' : 'completo') === m[0] ? 'true' : 'false', text:m[1]});
+    bb.addEventListener('click', function(){ sel.rnModo = m[0]; render(); });
+    return bb;
+  }));
+  f.appendChild(h('div', {class:'rn-barra'}, [chips, h('div', {class:'rn-barra-d'}, [bModo, bAp])]));
 
   /* cabeçalho da reunião */
   var hd = card('Reunião de ' + dmy(R.data), R.titulo || 'Reunião quinzenal com os sócios', null, 'rn-head');
@@ -1771,6 +1777,7 @@ function pgReunioes(){
   if (R.roteiro && R.roteiro.length) rRoteiro(hd, R, NUM);
   else hd.appendChild(h('ol', {class:'rn-pauta'}, pauta.map(function(p){ return h('li', null, [h('a', {href:'#' + p[0], text:p[1], onclick:function(e){ e.preventDefault(); var el = document.getElementById(p[0]); if (el) el.scrollIntoView({behavior:'smooth', block:'start'}); }})]); })));
   f.appendChild(h('div', {class:'mt'}, [hd]));
+  if (essencial){ rEssencial(f, R, NUM); var cnE = h('div', {class:'mt rn-notas-w'}); f.appendChild(cnE); rNotas(cnE, R); return f; }
 
   /* 1) reporte */
   var c1 = card(NUM['rn-1'] + 'Reporte', 'O que aconteceu de ' + rDdm(R.de, R.ate) + ', com os números do painel', null, 'rn-sec'); c1.id = 'rn-1';
@@ -1845,6 +1852,109 @@ function pgReunioes(){
 }
 /* Pautas da reunião: lista com check de "conversado". Todos veem; a AGE adiciona, edita, exclui e marca
    (functions/api/pauta.js). Fora do site (sem a API), tudo fica salvo só neste navegador. */
+/* Reunião, visão essencial: só o que sustenta a conversa, em números grandes e gráficos simples */
+function esSec(id, titulo, sub){ var c = card(titulo, sub || null, null, 'rn-sec es-sec'); c.id = id; return c; }
+function esNum(n, rot, sub, tom){ return h('div', {class:'es-n es-' + (tom || 'neu')}, [h('span', {class:'es-nv', text:n}), h('b', {text:rot}), sub ? h('small', {text:sub}) : null]); }
+function rEssencial(f, R, NUM){
+  var E = R.essencial || {};
+  var espAnt = sel.esp; sel.esp = 'todas';
+  var a = agg({ini:R.de, fim:R.ate});
+  var ac = R.cortesia ? agg({ini:R.cortesia[0], fim:R.cortesia[1]}) : null;
+  sel.esp = espAnt;
+
+  /* 1) números do mês */
+  var c1 = esSec('rn-1', NUM['rn-1'] + (E.titulo || 'O mês em números'), rDdm(R.de, R.ate) + (R.cmp_de ? ' · comparado com ' + rDdm(R.cmp_de, R.cmp_ate) : ''));
+  if (E.numeros) c1.appendChild(h('div', {class:'es-hero'}, E.numeros.map(function(x){ return esNum(x[0], x[1], x[2], x[3]); })));
+  var duo = h('div', {class:'es-duo'});
+  /* origem: barra empilhada */
+  var ks = Object.keys(ORI_NOME).filter(function(k){ return a.ori[k]; }).sort(function(x, y){ return a.ori[y] - a.ori[x]; });
+  if (a.agend && ks.length){
+    var CORO = {anuncio:'#9D7B3E', ig_medico:'#3B1E19', remarketing:'#C2B280', indicacao:'#D2B48C', ig_clinica:'#8A6A4F', nao_identificado:'#DED8C5', outras:'#DED8C5'};
+    var po = h('div', {class:'es-painel'}, [h('h4', {class:'vig-sub', text:'De onde vieram os ' + fmt(a.agend) + ' agendamentos'})]);
+    po.appendChild(h('div', {class:'es-pilha', role:'img', 'aria-label':ks.map(function(k){ return ORI_NOME[k] + ': ' + a.ori[k]; }).join(', ')}, ks.map(function(k){ return h('span', {style:'flex:' + a.ori[k] + ';background:' + (CORO[k] || '#DED8C5'), title:ORI_NOME[k] + ': ' + a.ori[k]}); })));
+    po.appendChild(h('div', {class:'es-leg'}, ks.map(function(k){ return h('span', null, [h('i', {style:'background:' + (CORO[k] || '#DED8C5')}), h('b', {text:fmt(a.ori[k])}), ' ' + ORI_NOME[k].replace(' Mondän', '')]); })));
+    if (E.origem_nota) po.appendChild(h('p', {class:'es-nota', text:E.origem_nota}));
+    duo.appendChild(po);
+  }
+  /* cortesia: um quadrado por avaliação */
+  if (ac && totSt(ac.avalDerm)){
+    var st = ac.avalDerm, q = [];
+    [['comp', 'Compareceram', 'var(--st-comp)'], ['canc', 'Cancelaram', 'var(--st-canc)'], ['falta', 'Faltaram', 'var(--st-falta)'], ['remarc', 'Remarcaram', 'var(--ink-3)'], ['fut', 'Ainda vão acontecer', '#DED8C5'], ['sem', 'Sem registro', '#DED8C5']].forEach(function(t){ for (var i = 0; i < (st[t[0]] || 0); i++) q.push(t); });
+    var pc = h('div', {class:'es-painel'}, [h('h4', {class:'vig-sub', text:'Avaliação cortesia de dermatologia: ' + fmt(totSt(st)) + ' marcadas'})]);
+    pc.appendChild(h('div', {class:'es-quad', role:'img', 'aria-label':'Avaliações cortesia por situação'}, q.map(function(t){ return h('span', {style:'background:' + t[2], title:t[1]}); })));
+    var usados = {}; q.forEach(function(t){ usados[t[0]] = t; });
+    pc.appendChild(h('div', {class:'es-leg'}, Object.keys(usados).map(function(k){ var t = usados[k]; return h('span', null, [h('i', {style:'background:' + t[2]}), h('b', {text:fmt(st[k])}), ' ' + (st[k] === 1 ? t[1].replace('Compareceram', 'Compareceu').replace('Cancelaram', 'Cancelou').replace('Faltaram', 'Faltou').replace('Remarcaram', 'Remarcou').replace('Ainda vão', 'Ainda vai') : t[1]).toLowerCase()]); })));
+    if (E.cortesia_nota) pc.appendChild(h('p', {class:'es-nota', text:E.cortesia_nota}));
+    duo.appendChild(pc);
+  }
+  if (duo.childNodes.length) c1.appendChild(duo);
+  f.appendChild(h('div', {class:'mt'}, [c1]));
+
+  /* 2) pendências */
+  if (R.pendencias && R.pendencias.length){
+    var c2 = esSec('rn-2', NUM['rn-2'] + 'Pendências');
+    c2.appendChild(h('div', {class:'es-pend'}, R.pendencias.map(function(p){ var ok = p[2] === 'feito'; return h('div', {class:'es-p' + (ok ? ' es-p-ok' : '')}, [h('span', {class:'es-pi', text:ok ? '✓' : '•', 'aria-hidden':'true'}), h('span', {text:p[0]}), rStatus(p[2])]); })));
+    f.appendChild(h('div', {class:'mt'}, [c2]));
+  }
+
+  /* 3 e 4) melhorar e oportunidades: número + título */
+  function cartas(lista, cls){ return h('div', {class:'es-cartas'}, (lista || []).map(function(x){ return h('div', {class:'es-c ' + cls}, [h('span', {class:'es-cn', text:x[3] || '•'}), h('b', {text:x[0]})]); })); }
+  var row = h('div', {class:'grid g2 mt'});
+  var c3 = esSec('rn-3', NUM['rn-3'] + 'Pontos a melhorar'); c3.appendChild(cartas(R.melhorar, 'es-m'));
+  var c4 = esSec('rn-4', NUM['rn-4'] + 'Oportunidades'); c4.appendChild(cartas(R.oportunidades, 'es-o'));
+  row.appendChild(c3); row.appendChild(c4); f.appendChild(row);
+
+  /* pautas especiais */
+  (R.pautas || []).forEach(function(p, i){
+    var X = p.essencial; if (!X){ var cp = rPauta(p, NUM['rn-p' + i]); cp.id = 'rn-p' + i; f.appendChild(h('div', {class:'mt'}, [cp])); return; }
+    var c = esSec('rn-p' + i, NUM['rn-p' + i] + (p.curto || p.titulo), X.sub || null);
+    if (X.funil){
+      c.appendChild(h('h4', {class:'vig-sub', text:X.funil_titulo || 'Onde a conversa para'}));
+      var fl = h('div', {class:'es-funil'});
+      X.funil.forEach(function(x, j){ if (j) fl.appendChild(h('span', {class:'es-seta', text:'→', 'aria-hidden':'true'})); fl.appendChild(esNum(x[0], x[1], x[2], x[3])); });
+      c.appendChild(fl);
+    }
+    if (X.custo){
+      var mx = Math.max.apply(null, X.custo.barras.map(function(b){ return b[1]; }));
+      var pcu = h('div', {class:'es-painel'}, [h('h4', {class:'vig-sub', text:X.custo.titulo})]);
+      X.custo.barras.forEach(function(b){ pcu.appendChild(h('div', {class:'es-barra'}, [h('span', {class:'es-bl', text:b[0]}), h('div', {class:'es-bt'}, [h('div', {class:'es-bf', style:'width:' + Math.max(4, b[1] / mx * 100) + '%;background:' + (b[4] || '#9D7B3E')})]), h('b', {text:b[2]}), b[3] ? h('small', {text:b[3]}) : null])); });
+      if (X.custo.nota) pcu.appendChild(h('p', {class:'es-nota', text:X.custo.nota}));
+      var d2 = h('div', {class:'es-duo'}, [pcu]);
+      if (X.saldo){
+        var ps = h('div', {class:'es-painel'}, [h('h4', {class:'vig-sub', text:X.saldo_titulo || 'Agendamentos por mês, no ritmo de hoje'})]);
+        ps.appendChild(h('div', {class:'es-saldo'}, X.saldo.map(function(x){ return esNum(x[0], x[1], x[2], x[3]); })));
+        if (X.saldo_nota) ps.appendChild(h('p', {class:'es-nota', text:X.saldo_nota}));
+        d2.appendChild(ps);
+      }
+      c.appendChild(d2);
+    }
+    if (X.proposta){
+      c.appendChild(h('h4', {class:'vig-sub', text:'A proposta'}));
+      c.appendChild(h('div', {class:'es-prop'}, X.proposta.map(function(x){ return h('div', {class:'es-pp'}, [h('b', {text:x[0]}), h('span', {text:x[1]})]); })));
+    }
+    if (p.decidir && p.decidir.length){
+      c.appendChild(h('h4', {class:'vig-sub', text:'Para decidir hoje'}));
+      c.appendChild(h('ol', {class:'es-dec'}, p.decidir.map(function(t){ return h('li', {text:t}); })));
+    }
+    var bt = h('button', {type:'button', class:'rn-rot-bt es-vertudo', text:'Ver a análise completa desta pauta →'});
+    bt.addEventListener('click', function(){ sel.rnModo = 'completo'; render(); setTimeout(function(){ var el = document.getElementById('rn-p' + i); if (el) el.scrollIntoView({block:'start'}); }, 50); });
+    c.appendChild(bt);
+    f.appendChild(h('div', {class:'mt'}, [c]));
+  });
+
+  /* 5) estratégias: título + situação */
+  var c5 = esSec('rn-5', NUM['rn-5'] + 'Próximas estratégias');
+  c5.appendChild(h('div', {class:'es-estr'}, (R.estrategias || []).map(function(x, i){ return h('div', {class:'es-e'}, [h('span', {class:'rn-en', text:String(i + 1)}), h('b', {text:x[0]}), rStatus(x[3])]); })));
+  f.appendChild(h('div', {class:'mt'}, [c5]));
+
+  /* 6) combinados */
+  var c6 = esSec('rn-6', NUM['rn-6'] + 'Combinados e próximos passos');
+  var itensC = (R.combinados || []).map(function(t){ return h('div', {class:'es-p'}, [h('span', {class:'es-pi', text:'•'}), h('span', {text:t})]); })
+    .concat((R.passos || []).map(function(p){ return h('div', {class:'es-p'}, [h('span', {class:'es-pi', text:'→'}), h('span', null, [h('b', {text:p[2] ? dm(p[2]) + ' · ' : ''}), p[0] + (p[1] ? ' (' + p[1] + ')' : '')]), rStatus(p[3])]); }));
+  c6.appendChild(itensC.length ? h('div', {class:'es-pend'}, itensC) : h('p', {class:'vazio', text:'A preencher na reunião.'}));
+  f.appendChild(h('div', {class:'mt'}, [c6]));
+}
+
 function rRoteiro(hd, R, NUM){
   var base = (R.roteiro || []).map(function(x){ return {t:x[0], alvo:x[1] || '', ok:false}; });
   var IT = base.slice(), pode = false, remoto = false, meta = {}, editando = -1, lsK = 'mondan-pautas-' + R.data;
