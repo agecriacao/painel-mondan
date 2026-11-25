@@ -1662,8 +1662,18 @@ function rPauta(p, num){
       var linha = h('div', {class:'rn-mr'}, [h('b', {text:m[0]}), h('span', {class:'rn-hoje', text:m[1]}), h('span', {class:'rn-com', text:m[2]})]);
       if (!m[3] || !m[3].length) return linha;
       var det = h('details', {class:'rn-exs'}, [h('summary', {text:'Ver ' + m[3].length + ' exemplos reais'}),
-        h('div', {class:'rn-exl'}, m[3].map(function(e){ return h('div', {class:'rn-ex'}, [h('b', {text:e[0]}), h('ol', null, e[1].map(function(p){ return h('li', null, [h('span', {class:'rn-exq rn-exq-' + p[0], text:{L:'Lead', R:'Robô', E:'Equipe', X:'—'}[p[0]] || p[0]}), h('span', {text:p[1]})]); }))]); })),
-        h('p', {class:'nota', text:'Conversas reais de novembro, resumidas sem nome, telefone ou texto do paciente. A AGE tem o número de cada lead para abrir a conversa no Kommo, se precisar.'})]);
+        h('div', {class:'rn-exl'}, m[3].map(function(e){
+          if (Array.isArray(e)) e = {t:e[0], passos:e[1]};
+          var kids = [h('b', {text:e.t}), h('ol', null, e.passos.map(function(p){ return h('li', null, [h('span', {class:'rn-exq rn-exq-' + p[0], text:{L:'Lead', R:'Robô', E:'Equipe', X:'—'}[p[0]] || p[0]}), h('span', {text:p[1]})]); }))];
+          if (e.conversa && e.conversa.length){
+            kids.push(h('details', {class:'rn-chat'}, [h('summary', {text:'Ver a conversa'}), h('div', {class:'wa'}, e.conversa.map(function(c){
+              return h('div', {class:'wa-m wa-' + c[0]}, [h('span', {class:'wa-q', text:{L:'Lead', R:'Robô (automática)', E:'Equipe'}[c[0]]}), h('p', {text:c[2]}), h('small', {text:c[1]})]);
+            }))]));
+          }
+          if (e.id) kids.push(h('a', {class:'rn-kommo', href:'https://viniciusbcunha.kommo.com/leads/detail/' + e.id, target:'_blank', rel:'noopener', text:'Abrir no Kommo (lead ' + e.id + ') ↗'}));
+          return h('div', {class:'rn-ex'}, kids);
+        })),
+        h('p', {class:'nota', text:'Conversas reais de novembro, com nome, telefone e dados de cadastro ocultados. Uso interno: não compartilhar fora da clínica e da AGE.'})]);
       return h('div', {class:'rn-mrw'}, [linha, det]);
     }))));
   }
