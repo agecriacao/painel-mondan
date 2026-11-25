@@ -738,3 +738,10 @@ body.apresentar .es-n .es-nv{font-size:42px}
 .es-h5b{font-size:14px;font-weight:700;color:var(--madeira,#3B1E19);margin:18px 0 4px;padding-top:12px;border-top:1px dashed #D2B48C}
 .es-estim{border:1.5px dashed #C2B280;background:#FFFCF7}
 .es-tag{display:inline-block;margin-left:8px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:#F3EBDD;color:#9D7B3E;border-radius:999px;padding:2px 8px;vertical-align:2px}
+.es-cdest{grid-column:1/-1;background:linear-gradient(135deg,#2F4A36,#3F7A4E);gap:6px;padding:16px 18px}
+.es-cdest b{color:#fff !important;font-size:17px !important}
+.es-cdest .es-cdsub{color:#DDEBDD;font-size:13.5px}
+.es-cdl{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:8px}
+.es-cdi{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}
+.es-cdi strong{color:#E8CF9A;font-size:14px}
+.es-cdi span{color:#F1F6F0;font-size:12.5px;line-height:1.4}

@@ -1947,7 +1947,10 @@ function rEssencial(f, R, NUM){
   }
 
   /* 3 e 4) melhorar e oportunidades: número + título */
-  function cartas(lista, cls){ return h('div', {class:'es-cartas'}, (lista || []).map(function(x){ return h('div', {class:'es-c ' + cls}, [h('b', {text:x[0]}), h('span', {class:'es-cn', text:x[3] || '•'}), x[4] ? h('small', {text:x[4]}) : null]); })); }
+  function cartas(lista, cls){ return h('div', {class:'es-cartas'}, (lista || []).map(function(x){
+    if (x[5] && x[5].length) return h('div', {class:'es-c es-cdest ' + cls}, [h('b', {text:x[0]}), x[4] ? h('small', {class:'es-cdsub', text:x[4]}) : null,
+      h('div', {class:'es-cdl'}, x[5].map(function(t){ return h('div', {class:'es-cdi'}, [h('strong', {text:t[0]}), h('span', {text:t[1]})]); }))]);
+    return h('div', {class:'es-c ' + cls}, [h('b', {text:x[0]}), x[3] ? h('span', {class:'es-cn', text:x[3]}) : null, x[4] ? h('small', {text:x[4]}) : null]); })); }
   if (R.melhorar && R.melhorar.length){ var c3 = esSec('rn-3', NUM['rn-3'] + 'Pontos a melhorar'); c3.appendChild(cartas(R.melhorar, 'es-m')); f.appendChild(h('div', {class:'mt'}, [c3])); }
   var c4 = esSec('rn-4', NUM['rn-4'] + 'Oportunidades'); c4.appendChild(cartas(R.oportunidades, 'es-o'));
   f.appendChild(h('div', {class:'mt'}, [c4]));
