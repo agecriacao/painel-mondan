@@ -1913,6 +1913,15 @@ function rEssencial(f, R, NUM){
       X.funil.forEach(function(x, j){ if (j) fl.appendChild(h('span', {class:'es-seta', text:'→', 'aria-hidden':'true'})); fl.appendChild(esNum(x[0], x[1], x[2], x[3])); });
       c.appendChild(fl);
     }
+    if (X.gastos){
+      c.appendChild(h('h4', {class:'vig-sub', text:X.gastos_titulo || 'Quanto se gasta por mês'}));
+      c.appendChild(h('div', {class:'es-duo es-duo-top'}, X.gastos.map(function(g){
+        var pg = h('div', {class:'es-painel es-gasto'}, [h('h5', {text:g.titulo})]);
+        g.linhas.forEach(function(l){ pg.appendChild(h('div', {class:'es-gl' + (l[2] ? ' es-gl-' + l[2] : '')}, [h('span', {text:l[0]}), h('b', {text:l[1]})])); });
+        if (g.nota) pg.appendChild(h('p', {class:'es-nota', text:g.nota}));
+        return pg;
+      })));
+    }
     if (X.custo){
       var mx = Math.max.apply(null, X.custo.barras.map(function(b){ return b[1]; }));
       var pcu = h('div', {class:'es-painel'}, [h('h4', {class:'vig-sub', text:X.custo.titulo})]);
