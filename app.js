@@ -1966,7 +1966,7 @@ function rEssencial(f, R, NUM){
       c.appendChild(h('h4', {class:'vig-sub', text:X.gastos_titulo || 'Quanto se gasta por mês'}));
       [X.gastos, X.gastos_extra || []].forEach(function(GG, gi){ if (!GG.length) return;
       c.appendChild(h('div', {class:'es-duo es-duo-top' + (gi ? ' es-duo-extra' : '')}, GG.map(function(g){
-        var pg = h('div', {class:'es-painel es-gasto'}, [h('h5', {text:g.titulo})]);
+        var pg = h('div', {class:'es-painel es-gasto' + (g.estimativa ? ' es-estim' : '')}, [h('h5', null, [g.titulo, g.estimativa ? h('span', {class:'es-tag', text:'Estimativa'}) : null])]);
         g.linhas.forEach(function(l){ pg.appendChild(h('div', {class:'es-gl' + (l[2] ? ' es-gl-' + l[2] : '')}, [h('span', {text:l[0]}), h('b', {text:l[1]})])); });
         if (g.nota) pg.appendChild(h('p', {class:'es-nota', text:g.nota}));
         if (g.soma_meta){
