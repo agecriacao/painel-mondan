@@ -608,3 +608,17 @@ body.apresentar .rn-abertura{font-size:17px}
 body.apresentar .rn-notas-w{display:none}
 .rn-ref{margin-top:18px;border:1px solid #E6DBC9;border-radius:12px;padding:4px 16px 14px;background:#FFFCF7}
 .rn-refsub{font-size:12.5px;color:var(--ink-2);margin:-2px 0 10px}
+.rn-rot{margin-top:16px;border:1px solid #E6DBC9;border-radius:12px;padding:6px 16px 10px;background:#FFFCF7;max-width:1000px}
+.rn-rot-topo{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.rn-rot-prog{font-size:12.5px;font-weight:600;color:var(--dourado,#9D7B3E)}
+.rn-rot-lista{list-style:none;margin:4px 0 0;padding:0}
+.rn-rot-lista li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid #EFE7DA}
+.rn-rot-lista li:first-child{border-top:0}
+.rn-rot-lista label{display:flex;align-items:flex-start;gap:10px;font-size:14.5px;line-height:1.45;color:var(--madeira,#3B1E19);cursor:pointer}
+.rn-rot-lista input{width:18px;height:18px;margin-top:2px;accent-color:#9D7B3E;flex:none;cursor:pointer}
+.rn-rot-lista input:disabled{cursor:default}
+.rn-rot-lista li.feito label span{color:#8A7F72;text-decoration:line-through;text-decoration-color:#C9BBA5}
+.rn-rot-ir{font-size:12.5px;white-space:nowrap;color:#9D7B3E;text-decoration:none}
+.rn-rot-ir:hover{text-decoration:underline}
+.rn-rot-st{margin:6px 0 0}
+body.apresentar .rn-rot-lista label{font-size:17px}

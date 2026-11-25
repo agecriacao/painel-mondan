@@ -1752,13 +1752,14 @@ function pgReunioes(){
   meta.appendChild(h('span', {text:'Período analisado: ' + rDdm(R.de, R.ate) + (R.cmp_de ? ' · comparado com ' + rDdm(R.cmp_de, R.cmp_ate) : '')}));
   if (R.participantes && R.participantes.length) meta.appendChild(h('span', {text:'Participantes: ' + R.participantes.join(', ')}));
   hd.appendChild(meta);
-  if (R.manchete) hd.appendChild(h('p', {class:'rn-manchete', text:R.manchete}));
+  if (R.manchete && !(R.roteiro && R.roteiro.length)) hd.appendChild(h('p', {class:'rn-manchete', text:R.manchete}));
   var PT = R.pautas || [];
   var pauta = [['rn-1','Reporte'],['rn-2','Pendências'],['rn-3','Pontos a melhorar'],['rn-4','Oportunidades']];
   PT.forEach(function(p, i){ pauta.push(['rn-p' + i, p.curto || p.titulo]); });
   pauta.push(['rn-5','Próximas estratégias'], ['rn-6','Combinados e próximos passos']);
   var NUM = {}; pauta.forEach(function(p, i){ NUM[p[0]] = (i + 1) + '. '; });
-  hd.appendChild(h('ol', {class:'rn-pauta'}, pauta.map(function(p){ return h('li', null, [h('a', {href:'#' + p[0], text:p[1], onclick:function(e){ e.preventDefault(); var el = document.getElementById(p[0]); if (el) el.scrollIntoView({behavior:'smooth', block:'start'}); }})]); })));
+  if (R.roteiro && R.roteiro.length) rRoteiro(hd, R, NUM);
+  else hd.appendChild(h('ol', {class:'rn-pauta'}, pauta.map(function(p){ return h('li', null, [h('a', {href:'#' + p[0], text:p[1], onclick:function(e){ e.preventDefault(); var el = document.getElementById(p[0]); if (el) el.scrollIntoView({behavior:'smooth', block:'start'}); }})]); })));
   f.appendChild(h('div', {class:'mt'}, [hd]));
 
   /* 1) reporte */
@@ -1832,6 +1833,49 @@ function pgReunioes(){
   var cn = h('div', {class:'mt rn-notas-w'}); f.appendChild(cn); rNotas(cn, R);
   return f;
 }
+/* O que a gente precisa conversar: checklist da reunião. Todos veem; a AGE marca (functions/api/pauta.js).
+   Fora do site (sem a API), as marcações ficam só neste navegador. */
+function rRoteiro(hd, R, NUM){
+  var IT = R.roteiro, est = {feitos:{}}, pode = false, remoto = false, lsK = 'mondan-pauta-' + R.data;
+  var box = h('div', {class:'rn-rot'});
+  var topo = h('div', {class:'rn-rot-topo'}, [h('h4', {class:'vig-sub', text:'O que a gente precisa conversar'})]);
+  var prog = h('span', {class:'rn-rot-prog'}); topo.appendChild(prog);
+  box.appendChild(topo);
+  var ul = h('ul', {class:'rn-rot-lista'}); box.appendChild(ul);
+  var rod = h('p', {class:'nota rn-rot-st'}); box.appendChild(rod);
+  hd.appendChild(box);
+  function desenha(){
+    ul.innerHTML = ''; var n = 0;
+    IT.forEach(function(it, i){
+      var ok = !!est.feitos[i]; if (ok) n++;
+      var cb = h('input', {type:'checkbox', 'aria-label':'Conversado: ' + it[0]}); cb.checked = ok; cb.disabled = !pode;
+      cb.addEventListener('change', function(){ muda(i, cb.checked); });
+      var li = h('li', {class:ok ? 'feito' : ''}, [h('label', null, [cb, h('span', {text:it[0]})])]);
+      if (it[1] && document.getElementById(it[1])) li.appendChild(h('a', {href:'#' + it[1], class:'rn-rot-ir', text:'ver ' + (NUM[it[1]] || '').trim().replace(/\.$/, '') + ' →', onclick:function(e){ e.preventDefault(); var el = document.getElementById(it[1]); if (el) el.scrollIntoView({behavior:'smooth', block:'start'}); }}));
+      ul.appendChild(li);
+    });
+    prog.textContent = n + ' de ' + IT.length + ' conversados';
+    rod.textContent = remoto ? (est.em ? 'Última marcação: ' + (est.por || '').split('@')[0] + ' em ' + new Date(est.em).toLocaleString('pt-BR') : (pode ? 'Marque cada item quando a gente tiver conversado.' : 'A AGE marca cada item durante a reunião.')) : 'Marcações salvas só neste navegador.';
+  }
+  function muda(i, v){
+    if (v) est.feitos[i] = true; else delete est.feitos[i];
+    desenha();
+    if (!remoto){ try { localStorage.setItem(lsK, JSON.stringify(est.feitos)); } catch(e){} return; }
+    rod.textContent = 'Salvando…';
+    fetch('/api/pauta?r=' + R.data, {method:'PUT', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({feitos:est.feitos})})
+      .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(v){ est = v; desenha(); })
+      .catch(function(){ rod.textContent = 'Não salvou. Tente de novo.'; });
+  }
+  function local(){ remoto = false; pode = true; try { est.feitos = JSON.parse(localStorage.getItem(lsK) || '{}') || {}; } catch(e){ est.feitos = {}; } desenha(); }
+  desenha();
+  setTimeout(desenha, 0);
+  fetch('/api/pauta?r=' + R.data, {credentials:'same-origin'})
+    .then(function(r){ if (!r.ok) throw new Error(r.status); var t = r.headers.get('Content-Type') || ''; if (t.indexOf('json') < 0) throw new Error('html'); return r.json(); })
+    .then(function(v){ remoto = true; pode = !!v.pode; est = v; est.feitos = v.feitos || {}; desenha(); })
+    .catch(local);
+}
+
 /* Anotações internas da AGE: só aparecem no site, para os e-mails da AGE (functions/api/notas.js) */
 var NOTAS_EU = null;
 function rNotas(host, R){
