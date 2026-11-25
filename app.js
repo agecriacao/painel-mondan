@@ -1898,7 +1898,7 @@ function rEssencial(f, R, NUM){
   }
 
   /* 3 e 4) melhorar e oportunidades: número + título */
-  function cartas(lista, cls){ return h('div', {class:'es-cartas'}, (lista || []).map(function(x){ return h('div', {class:'es-c ' + cls}, [h('span', {class:'es-cn', text:x[3] || '•'}), h('b', {text:x[0]}), x[4] ? h('small', {text:x[4]}) : null]); })); }
+  function cartas(lista, cls){ return h('div', {class:'es-cartas'}, (lista || []).map(function(x){ return h('div', {class:'es-c ' + cls}, [h('b', {text:x[0]}), h('span', {class:'es-cn', text:x[3] || '•'}), x[4] ? h('small', {text:x[4]}) : null]); })); }
   var c3 = esSec('rn-3', NUM['rn-3'] + 'Pontos a melhorar'); c3.appendChild(cartas(R.melhorar, 'es-m'));
   var c4 = esSec('rn-4', NUM['rn-4'] + 'Oportunidades'); c4.appendChild(cartas(R.oportunidades, 'es-o'));
   f.appendChild(h('div', {class:'mt'}, [c3])); f.appendChild(h('div', {class:'mt'}, [c4]));

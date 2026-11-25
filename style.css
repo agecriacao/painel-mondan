@@ -706,3 +706,5 @@ body.apresentar .es-n .es-nv{font-size:42px}
 .es-gl-total{border-top:2px solid #3B1E19}
 .es-gl-total span{font-weight:600;color:var(--madeira,#3B1E19)}
 .es-gl-total b{font-size:24px;color:#9D7B3E}
+.es-c b{font-size:14px}
+.es-c .es-cn{margin-top:2px}
