@@ -636,3 +636,11 @@ body.apresentar .rn-rot-lista label{font-size:17px}
 .rn-rot-add input{flex:1;font:inherit;font-size:14px;padding:7px 10px;border:1px solid #DED8C5;border-radius:8px;background:#fff;color:#3B1E19}
 .rn-rot-add .tag{cursor:pointer}
 body.apresentar .rn-rot-lab{font-size:17px}
+.tx-ed{margin-top:16px;border:1px solid #E6DBC9;border-radius:12px;padding:6px 16px 10px;background:#FFFCF7}
+.tx-topo{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.tx-texto{white-space:pre-wrap;font-size:14px;line-height:1.6;color:var(--madeira,#3B1E19);padding:2px 0 4px}
+.tx-ta{width:100%;box-sizing:border-box;font:inherit;font-size:14px;line-height:1.5}
+.tx-acoes{display:flex;gap:12px;align-items:center;margin-top:8px}
+.tx-acoes .tag{cursor:pointer}
+.tx-rod{margin:4px 0 0}
+.tx-rod:empty{display:none}

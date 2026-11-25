@@ -740,6 +740,7 @@ function pgMidia(){
     var ls = w.linhas.map(function(l){ tl += l.leads || 0; tg += l.gasto || 0; return {cel:[l.frente, fmt(l.leads), fmt(l.cpl, 'brl2'), fmt(l.gasto, 'brl2'), l.ctr === null ? '—' : nf1.format(l.ctr) + '%']}; });
     corpo.textContent = '';
     corpo.appendChild(tabela(['Frente', 'Leads', 'Custo por lead', 'Investimento', 'Cliques no link ÷ impressões'], ls, ['Total', fmt(tl), fmt(tl ? tg / tl : null, 'brl2'), fmt(tg, 'brl2'), '']));
+    textoEditavel(corpo, 'midia-sem-' + w.semana.replace(/\D/g, ''), 'Considerações da semana', w.consideracao || '', 'O que a gente fez e observou nesta semana: ajustes de verba, criativos pausados ou novos, testes.');
   }
   sem.forEach(function(w, i){ tabs.appendChild(h('button', {type:'button', role:'tab', text:w.semana.replace(' a ', '–') + (w.parcial ? ' *' : ''), onclick:function(){ mostra(i); }})); });
   mostra(pad); c4.appendChild(tabs); c4.appendChild(corpo);
@@ -1909,6 +1910,47 @@ function rRoteiro(hd, R, NUM){
       else if (v.feitos) IT.forEach(function(it, i){ it.ok = !!v.feitos[i]; });
       desenha(); })
     .catch(local);
+}
+
+/* Texto editável visto por todos e escrito pela AGE (functions/api/texto.js).
+   Fora do site (sem a API), o que for escrito fica só neste navegador. */
+function textoEditavel(host, chave, titulo, padrao, dica){
+  var box = h('div', {class:'tx-ed'}), est = {texto:null}, pode = false, remoto = false, lsK = 'mondan-texto-' + chave;
+  var topo = h('div', {class:'tx-topo'}, [h('h4', {class:'vig-sub', text:titulo})]);
+  var bt = h('button', {type:'button', class:'rn-rot-bt', text:'Editar'}); topo.appendChild(bt);
+  var corpo = h('div', {class:'tx-corpo'}), rod = h('p', {class:'nota tx-rod'});
+  box.appendChild(topo); box.appendChild(corpo); box.appendChild(rod); host.appendChild(box);
+  function atual(){ return est.texto !== null && est.texto !== undefined ? est.texto : padrao; }
+  function ver(){
+    corpo.textContent = '';
+    var t = atual();
+    corpo.appendChild(t ? h('div', {class:'tx-texto', text:t}) : h('p', {class:'vazio', text:pode ? 'Nada escrito ainda. Clique em Editar.' : 'Nenhuma consideração registrada para esta semana.'}));
+    bt.style.display = pode ? '' : 'none';
+    rod.textContent = remoto ? (est.em ? 'Escrito por ' + (est.por || '').split('@')[0] + ' em ' + new Date(est.em).toLocaleString('pt-BR') : '') : (pode ? 'Alterações salvas só neste navegador.' : '');
+  }
+  function edita(){
+    corpo.textContent = ''; bt.style.display = 'none';
+    var ta = h('textarea', {class:'rn-ta tx-ta', rows:'7', maxlength:'10000', placeholder:dica || ''}); ta.value = atual();
+    var sv = h('button', {type:'button', class:'tag', text:'Salvar'}), cn = h('button', {type:'button', class:'rn-rot-bt', text:'Cancelar'});
+    corpo.appendChild(ta); corpo.appendChild(h('div', {class:'tx-acoes'}, [sv, cn]));
+    cn.addEventListener('click', ver);
+    sv.addEventListener('click', function(){
+      var v = ta.value;
+      if (!remoto){ est = {texto:v}; try { localStorage.setItem(lsK, v); } catch(e){} ver(); return; }
+      sv.disabled = true; rod.textContent = 'Salvando…';
+      fetch('/api/texto?chave=' + encodeURIComponent(chave), {method:'PUT', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({texto:v})})
+        .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function(x){ est = x; ver(); })
+        .catch(function(){ sv.disabled = false; rod.textContent = 'Não salvou. Tente de novo.'; });
+    });
+    setTimeout(function(){ ta.focus(); }, 0);
+  }
+  bt.addEventListener('click', edita);
+  ver();
+  fetch('/api/texto?chave=' + encodeURIComponent(chave), {credentials:'same-origin'})
+    .then(function(r){ if (!r.ok) throw new Error(r.status); if ((r.headers.get('Content-Type') || '').indexOf('json') < 0) throw new Error('html'); return r.json(); })
+    .then(function(x){ remoto = true; pode = !!x.pode; est = x; ver(); })
+    .catch(function(){ remoto = false; pode = true; try { var v = localStorage.getItem(lsK); if (v !== null) est = {texto:v}; } catch(e){} ver(); });
 }
 
 /* Anotações internas da AGE: só aparecem no site, para os e-mails da AGE (functions/api/notas.js) */
