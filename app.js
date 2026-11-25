@@ -1509,18 +1509,20 @@ function pgGoogle(){
   ]);
   f.appendChild(ob);
   if (G.seo) f.appendChild(h('div', {class:'callout mt gseo'}, [h('b', {text:'Orgânico (SEO)'}), h('span', {text:G.seo})]));
-  function vazio(rot, explica){ return h('div', {class:'st espera'}, [h('div', {class:'st-l'}, [h('span', {text:rot})]), h('div', {class:'st-v peq', text:'—'}), h('div', {class:'st-n', text:explica})]); }
-  f.appendChild(h('h3', {class:'gsec', text:'Métricas principais'}));
-  var g1 = h('div', {class:'grid g3'});
-  [['Investimento', 'Quanto foi gasto no Google no período.'], ['Cliques', 'Pessoas que clicaram no anúncio.'], ['Taxa de cliques (CTR)', 'Cliques ÷ vezes em que o anúncio apareceu. Em busca de marca costuma ser alta.'],
-   ['Custo por clique', 'Valor médio pago por clique.'], ['Conversões', 'Cliques no WhatsApp, ligações e formulários vindos do Google.'], ['Custo por conversão', 'Investimento ÷ conversões.']].forEach(function(x){ g1.appendChild(vazio(x[0], x[1])); });
-  f.appendChild(g1);
-  f.appendChild(h('h3', {class:'gsec', text:'Proteção da marca'}));
-  var g2 = h('div', {class:'grid g3'});
-  [['Parcela de impressões na marca', 'De todas as buscas pela Mondän, em quantas o anúncio da clínica apareceu. O ideal é ficar perto do total.'],
-   ['Anúncio no topo da página', 'Em quantas dessas buscas o anúncio apareceu em primeiro lugar.'],
-   ['Outras empresas na busca da marca', 'Quem mais disputou as pesquisas pelo nome da Mondän (relatório de leilão do Google).']].forEach(function(x){ g2.appendChild(vazio(x[0], x[1])); });
-  f.appendChild(g2);
+  if (G.verba){
+    var V = G.verba, cv = card('Verba proposta', V.sub || null);
+    cv.appendChild(h('div', {class:'es-hero'}, V.numeros.map(function(x){ return esNum(x[0], x[1], x[2], x[3]); })));
+    if (V.cpc){
+      cv.appendChild(h('h4', {class:'vig-sub', style:'margin-top:16px', text:V.cpc_titulo}));
+      cv.appendChild(tabela(['Tipo de busca', 'Custo por clique', 'De onde vem'], V.cpc.map(function(x){ return {cel:[h('b', {text:x[0]}), x[1], x[2]]}; }), null, {esq:[0, 2]}));
+    }
+    if (V.avaliar){
+      cv.appendChild(h('h4', {class:'vig-sub', style:'margin-top:16px', text:'Como a gente vai avaliar'}));
+      cv.appendChild(h('div', {class:'es-pend'}, V.avaliar.map(function(t){ return h('div', {class:'es-p'}, [h('span', {class:'es-pi', text:'→'}), h('span', null, [h('b', {text:t[0] + ': '}), t[1]])]); })));
+    }
+    if (V.nota) cv.appendChild(h('p', {class:'nota', text:V.nota}));
+    cv.classList.add('mt'); f.appendChild(cv);
+  }
   var c1 = card('Grupos de anúncios propostos', 'Palavras de exemplo, a validar');
   c1.appendChild(tabela(['Grupo', 'Exemplos de pesquisa', 'Para quê'], G.grupos.map(function(x){ return {cel:[h('b', {text:x[0]}), x[1], x[2]]}; }), null, {esq:[0, 1, 2]}));
   c1.appendChild(h('p', {class:'nota', text:'Cada grupo terá seus números separados aqui (cliques, conversões e custo), para ver quanto vem da marca e quanto vem dos tratamentos.'}));

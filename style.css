@@ -749,3 +749,4 @@ body.apresentar .es-n .es-nv{font-size:42px}
 .es-gl-ads{margin-top:6px;border-top:1px dashed #C2B280}
 .es-gl-ads span{font-weight:600;color:var(--madeira,#3B1E19)}
 .es-gl-ads b{font-size:20px;color:var(--madeira,#3B1E19)}
+.es-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
