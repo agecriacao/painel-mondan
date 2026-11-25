@@ -1245,6 +1245,13 @@ function kAuditoria(f, A){
   c1.appendChild(tabela(['Critério', 'Cumpriu', 'Conversas'], (x.criterios || []).map(function(k){ return {cel:[k[0], pctTxt(k[1], k[2]), fmt(k[2])]}; }), null, {esq:[0]}));
   var c2 = h('div', null, [h('h4', {class:'vig-sub', text:'Brechas que deixaram passar'})]);
   barrasH(c2, (x.brechas || []).map(function(k){ return {l:k[0], sub:pctTxt(k[1], x.amostra) + ' das conversas', v:k[1], cls:'cl'}; }));
+  var lk = h('div', {class:'br-links'}, [h('h4', {class:'vig-sub', style:'margin-top:14px', text:'Exemplos no Kommo'})]);
+  (x.brechas || []).forEach(function(k, bi){
+    var L = (x.brechas_ids && x.brechas_ids[bi]) || k[3];
+    if (!L || !L.length) return;
+    lk.appendChild(h('div', {class:'br-l'}, [h('span', {text:k[0]})].concat(L.map(function(id, i){ return h('a', {href:'https://viniciusbcunha.kommo.com/leads/detail/' + id, target:'_blank', rel:'noopener', text:'Conversa ' + (i + 1) + ' ↗'}); }))));
+  });
+  if (lk.childNodes.length > 1) c2.appendChild(lk);
   (x.brechas || []).forEach(function(k){
     var e = k[2]; if (!e || !e.conversa) return;
     var kids = [h('p', {class:'nota', style:'margin:6px 0 8px', text:e.resumo || ''})];
