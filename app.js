@@ -1061,7 +1061,7 @@ function kAtendimento(f, a, b, bRot, A){
     var bs = mediana(a.bot_s);
     g.appendChild(tile({rot:'Robô responde em', txt:bs === null ? '—' : (bs < 60 ? nf0.format(bs) + ' s' : fmtMin(Math.round(bs / 60))), nota:'mediana do passo 1 ao passo 2'}));
     g.appendChild(tile({rot:'Equipe respondeu em até 15 min', v:pctAte(a.hum, 15), b:bV ? pctAte(bV.hum, 15) : undefined, bRot:bRot, tipo:'pct', pp:true, nota:'dos leads que conversaram e foram respondidos'}));
-    g.appendChild(tile({rot:'Pediram atendimento e ficaram sem resposta', v:a.sem_hum, b:bV ? bV.sem_hum : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:pctTxt(a.sem_hum, a.conversou) + ' de quem respondeu ao robô · após um dia útil'}));
+    g.appendChild(tile({rot:'Pediram atendimento e ficaram sem resposta', v:a.sem_hum, b:bV ? bV.sem_hum : undefined, bRot:bRot, tipo:'n', sentido:'menor', nota:pctTxt(a.sem_hum, a.conversou) + ' de quem respondeu ao robô · após um dia útil. Inclui fornecedores e currículos que escrevem no WhatsApp (em novembro, cerca de 4 em 10 eram pacientes).'}));
   } else {
     g.appendChild(tile({hero:true, rot:'Primeira resposta da equipe', v:mediana(a.resp), b:b ? mediana(b.resp) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'medida antiga: desde a primeira mensagem do lead'}));
     g.appendChild(tile({rot:'Respondidos em até 15 min', v:pctAte(a.resp, 15), b:b ? pctAte(b.resp, 15) : undefined, bRot:bRot, tipo:'pct', pp:true}));
@@ -1659,7 +1659,12 @@ function rPauta(p, num){
   if (p.mapa && p.mapa.length){
     c.appendChild(h('h4', {class:'vig-sub', text:p.mapa_titulo || 'O que os dados mostram e o que muda'}));
     c.appendChild(h('div', {class:'rn-mapa'}, [h('div', {class:'rn-mh'}, [h('span', {text:'Ponto'}), h('span', {text:'Hoje'}), h('span', {text:p.mapa_col || 'Com a IA'})])].concat(p.mapa.map(function(m){
-      return h('div', {class:'rn-mr'}, [h('b', {text:m[0]}), h('span', {class:'rn-hoje', text:m[1]}), h('span', {class:'rn-com', text:m[2]})]);
+      var linha = h('div', {class:'rn-mr'}, [h('b', {text:m[0]}), h('span', {class:'rn-hoje', text:m[1]}), h('span', {class:'rn-com', text:m[2]})]);
+      if (!m[3] || !m[3].length) return linha;
+      var det = h('details', {class:'rn-exs'}, [h('summary', {text:'Ver ' + m[3].length + ' exemplos reais'}),
+        h('div', {class:'rn-exl'}, m[3].map(function(e){ return h('div', {class:'rn-ex'}, [h('b', {text:e[0]}), h('ol', null, e[1].map(function(p){ return h('li', null, [h('span', {class:'rn-exq rn-exq-' + p[0], text:{L:'Lead', R:'Robô', E:'Equipe', X:'—'}[p[0]] || p[0]}), h('span', {text:p[1]})]); }))]); })),
+        h('p', {class:'nota', text:'Conversas reais de novembro, resumidas sem nome, telefone ou texto do paciente. A AGE tem o número de cada lead para abrir a conversa no Kommo, se precisar.'})]);
+      return h('div', {class:'rn-mrw'}, [linha, det]);
     }))));
   }
   var cols = [];
