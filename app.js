@@ -959,7 +959,7 @@ function pgRemarketing(){
 /* =========================================================
    Kommo: atendimento, leads no CRM, WhatsApp e custos, remarketing
    ========================================================= */
-var KSUB = [['atendimento','Vigia do atendimento'],['leads','Leads no CRM'],['whatsapp','WhatsApp e custos'],['remarketing','Remarketing']];
+var KSUB = [['atendimento','Atendimento'],['leads','Leads no CRM'],['whatsapp','WhatsApp e custos'],['remarketing','Remarketing']];
 var usd2 = new Intl.NumberFormat('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
 function usd(v){ return v === null || v === undefined ? '—' : 'US$ ' + usd2.format(v); }
 function kIni(){ var K = D.kommo; if (!K || !K.meses) return null; var ms = Object.keys(K.meses).sort(); return ms.length ? ms[0] + '-01' : null; }
@@ -1151,7 +1151,7 @@ function kResumo(f, a, A){
     bloco('Velocidade da equipe', stV[0], stV[1], fmtMin(md), 'de mediana depois que o lead pede uma pessoa. ' + nf0.format(p15) + '% respondidos em até 15 min; ' + fmt(a.sem_hum) + ' ficaram sem resposta.');
   } else {
     var mr = mediana(a.resp);
-    bloco('Velocidade da equipe', 'Medida antiga', 'at', mr === null ? '—' : fmtMin(mr), 'desde a primeira mensagem do lead. A medida nova aparece quando o mês tiver os dados do Vigia.');
+    bloco('Velocidade da equipe', 'Medida antiga', 'at', mr === null ? '—' : fmtMin(mr), 'desde a primeira mensagem do lead. A medida nova aparece quando o mês tiver os dados novos do atendimento.');
   }
   // 2) condução: vem da auditoria
   if (x && x.diagnostico){
@@ -1641,7 +1641,7 @@ function notas(){
 var RST = {feito:['Feito','ok'], andamento:['Em andamento','at'], pendente:['Pendente','at'], definir:['A definir','neu'], previsto:['Previsto','neu'],
   proposta:['Para decidir','at'], aprovada:['Aprovada','ok'], planejamento:['Em planejamento','neu'], adiada:['Adiada','neu'], nao:['Não aprovada','ruim'],
   pauta:['Pauta preparada','at'], realizada:['Reunião realizada','ok']};
-var RLINK = {kommo:['kommo', 'atendimento', 'Vigia do atendimento'], remarketing:['kommo', 'remarketing', 'Remarketing'], conteudo:['conteudo', null, 'Análise de conteúdo'],
+var RLINK = {kommo:['kommo', 'atendimento', 'Atendimento'], remarketing:['kommo', 'remarketing', 'Remarketing'], conteudo:['conteudo', null, 'Análise de conteúdo'],
   agenda:['agenda', null, 'Agenda e consultas'], instagram:['instagram', null, 'Instagram'], midia:['midia', null, 'Mídia paga'], google:['google', null, 'Google Ads'], geral:['geral', null, 'Visão geral']};
 function rStatus(k){ var x = RST[k] || [k || '—', 'neu']; return h('span', {class:'rn-st rn-' + x[1], text:x[0]}); }
 function rLink(k){
