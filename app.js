@@ -1973,6 +1973,12 @@ function rEssencial(f, R, NUM){
       })));
       });
     }
+    if (X.conclusao){
+      var K = X.conclusao, kc = h('div', {class:'es-concl'}, [h('h4', {text:K.titulo || 'Conclusão'})]);
+      if (K.conta) kc.appendChild(h('div', {class:'es-conta'}, K.conta.map(function(x){ return x.length === 1 ? h('span', {class:'es-op', text:x[0]}) : h('div', {class:'es-ck'}, [h('b', {text:x[0]}), h('span', {text:x[1]})]); })));
+      if (K.texto) kc.appendChild(h('p', {text:K.texto}));
+      c.appendChild(kc);
+    }
     if (X.custo){
       var mx = Math.max.apply(null, X.custo.barras.map(function(b){ return b[1]; }));
       var pcu = h('div', {class:'es-painel'}, [h('h4', {class:'vig-sub', text:X.custo.titulo})]);

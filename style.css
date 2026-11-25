@@ -726,3 +726,12 @@ body.apresentar .es-n .es-nv{font-size:42px}
 .es-ebr small{font-size:12.5px;color:#8A7F72}
 .es-duo-extra{margin-top:16px}
 .col-pilha{display:flex;flex-direction:column;gap:20px;min-width:0}
+.es-concl{margin-top:16px;background:#3B1E19;color:#FAF0E6;border-radius:14px;padding:16px 20px}
+.es-concl h4{margin:0 0 10px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#E8CF9A}
+.es-concl p{margin:12px 0 0;font-size:15px;line-height:1.55}
+.es-conta{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.es-ck{background:rgba(250,240,230,.08);border:1px solid rgba(232,207,154,.35);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;min-width:130px}
+.es-ck b{font-size:20px;color:#E8CF9A}
+.es-ck span{font-size:12.5px;color:#E9DCCB}
+.es-op{font-size:22px;color:#C2B280;font-weight:700}
+.es-op{font-size:15px}
