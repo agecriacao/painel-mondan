@@ -622,3 +622,5 @@ body.apresentar .rn-notas-w{display:none}
 .rn-rot-ir:hover{text-decoration:underline}
 .rn-rot-st{margin:6px 0 0}
 body.apresentar .rn-rot-lista label{font-size:17px}
+.rn-comp{margin-top:18px}
+.rn-comp td b{font-weight:600;color:var(--madeira,#3B1E19)}

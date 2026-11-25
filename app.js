@@ -1718,6 +1718,14 @@ function rPauta(p, num){
     if (rf.nota) cr.appendChild(h('p', {class:'nota', text:rf.nota}));
     c.appendChild(cr);
   }
+  if (p.comparacao && p.comparacao.linhas){
+    var cp = p.comparacao, cx = h('div', {class:'rn-comp'}, [h('h4', {class:'vig-sub', text:cp.titulo})]);
+    if (cp.sub) cx.appendChild(h('p', {class:'rn-refsub', text:cp.sub}));
+    cx.appendChild(tabela(['', 'Hoje', cp.depois || 'Com a mudança'], cp.linhas.map(function(l){ return {cel:[h('b', {text:l[0]}), l[1], l[2]]}; }), null, {esq:[0, 1, 2]}));
+    if (cp.nota) cx.appendChild(h('p', {class:'nota', text:cp.nota}));
+    if (cp.link) cx.appendChild(rLink(cp.link));
+    c.appendChild(cx);
+  }
   if (p.condicoes && p.condicoes.length){
     c.appendChild(h('h4', {class:'vig-sub', text:'Condições'}));
     c.appendChild(h('div', {class:'rn-cond'}, p.condicoes.map(function(x){ return h('div', {class:'rn-cd'}, [h('b', {text:x[0]}), h('span', {text:x[1]})]); })));
