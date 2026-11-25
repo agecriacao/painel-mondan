@@ -1648,7 +1648,7 @@ function notas(){
 var RST = {feito:['Feito','ok'], andamento:['Em andamento','at'], pendente:['Pendente','at'], definir:['A definir','neu'], previsto:['Previsto','neu'],
   proposta:['Para decidir','at'], aprovada:['Aprovada','ok'], planejamento:['Em planejamento','neu'], adiada:['Adiada','neu'], nao:['Não aprovada','ruim'],
   pauta:['Pauta preparada','at'], realizada:['Reunião realizada','ok']};
-var RLINK = {kommo:['kommo', 'atendimento', 'Atendimento'], remarketing:['kommo', 'remarketing', 'Remarketing'], conteudo:['conteudo', null, 'Análise de conteúdo'],
+var RLINK = {kommo:['kommo', 'atendimento', 'Atendimento'], whatsapp:['kommo', 'whatsapp', 'WhatsApp e custos'], remarketing:['kommo', 'remarketing', 'Remarketing'], conteudo:['conteudo', null, 'Análise de conteúdo'],
   agenda:['agenda', null, 'Agenda e consultas'], instagram:['instagram', null, 'Instagram'], midia:['midia', null, 'Mídia paga'], google:['google', null, 'Google Ads'], geral:['geral', null, 'Visão geral']};
 function rStatus(k){ var x = RST[k] || [k || '—', 'neu']; return h('span', {class:'rn-st rn-' + x[1], text:x[0]}); }
 function rLink(k){
@@ -1696,14 +1696,29 @@ function rPauta(p, num){
     if (p.conta.nota) cc.appendChild(h('p', {class:'nota', text:p.conta.nota}));
     row.appendChild(cc);
   }
+  if (p.custos && p.custos.linhas){
+    var ck = h('div', null, [h('h4', {class:'vig-sub', text:p.custos.titulo || 'Custos hoje'})]);
+    ck.appendChild(h('div', {class:'rn-conta'}, p.custos.linhas.map(function(l){ return h('div', {class:'rn-cl' + (l[2] ? ' rn-cl-' + l[2] : '')}, [h('span', {text:l[0]}), h('b', {text:l[1]})]); })));
+    if (p.custos.nota) ck.appendChild(h('p', {class:'nota', text:p.custos.nota}));
+    if (p.custos.link) ck.appendChild(rLink(p.custos.link));
+    row.appendChild(ck);
+  }
   if (p.medir && p.medir.length){
     var cm = h('div', null, [h('h4', {class:'vig-sub', text:'Como vamos medir no painel'})]);
     cm.appendChild(tabela(['Indicador', 'Hoje', 'Onde ver'], p.medir.map(function(m){ return {cel:[m[0], m[1], m[2]]}; }), null, {esq:[0, 2]}));
     row.appendChild(cm);
   }
   if (row.childNodes.length) c.appendChild(row);
+  if (p.referencia){
+    var rf = p.referencia, cr = h('div', {class:'rn-ref'}, [h('h4', {class:'vig-sub', text:rf.titulo})]);
+    if (rf.sub) cr.appendChild(h('p', {class:'rn-refsub', text:rf.sub}));
+    cr.appendChild(h('div', {class:'rn-dest'}, rf.numeros.map(function(d){ return h('div', {class:'rn-d rn-d-' + (d[3] || 'neu')}, [h('span', {class:'rn-dn', text:d[0]}), h('b', {text:d[1]}), d[2] ? h('small', {text:d[2]}) : null]); })));
+    if (rf.aprendizados && rf.aprendizados.length){ cr.appendChild(h('h4', {class:'vig-sub', text:'O que aprendemos lá'})); cr.appendChild(h('ul', {class:'rn-lista'}, rf.aprendizados.map(function(t){ return h('li', {text:t}); }))); }
+    if (rf.nota) cr.appendChild(h('p', {class:'nota', text:rf.nota}));
+    c.appendChild(cr);
+  }
   if (p.condicoes && p.condicoes.length){
-    c.appendChild(h('h4', {class:'vig-sub', text:'Condições do teste'}));
+    c.appendChild(h('h4', {class:'vig-sub', text:'Condições'}));
     c.appendChild(h('div', {class:'rn-cond'}, p.condicoes.map(function(x){ return h('div', {class:'rn-cd'}, [h('b', {text:x[0]}), h('span', {text:x[1]})]); })));
   }
   if (p.decidir && p.decidir.length){
