@@ -708,3 +708,6 @@ body.apresentar .es-n .es-nv{font-size:42px}
 .es-gl-total b{font-size:24px;color:#9D7B3E}
 .es-c b{font-size:14px}
 .es-c .es-cn{margin-top:2px}
+.es-gl-sub{border-top:1px solid #C2B280}
+.es-gl-sub span{font-weight:600;color:var(--madeira,#3B1E19)}
+.es-gl-sub b{font-size:19px;color:#9D7B3E}
