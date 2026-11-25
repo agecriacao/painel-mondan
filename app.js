@@ -1049,7 +1049,7 @@ function kAtendimento(f, a, b, bRot, A){
   c0.appendChild(tl);
   c0.appendChild(h('ul', {class:'vig-regras'}, [
     h('li', {text:'Se uma pessoa da equipe entra antes de o lead responder ao robô, o tempo conta desde a primeira mensagem do lead.'}),
-    h('li', {text:'Se o lead não responde ao robô em 24 horas, ele não entra na conta da equipe: aparece como “não respondeu ao robô”, um sinal sobre a qualidade do lead.'}),
+    h('li', {text:'Se o lead não responde ao robô em 24 horas, ele não entra na conta da equipe: aparece como “não respondeu ao robô” e entra na estratégia de recontato.'}),
     h('li', {text:'Horário de atendimento: ' + EXPED + '. Noites, fins de semana e feriados não contam no tempo da equipe. Mensagens automáticas e modelos não contam como resposta.'})
   ]));
   f.appendChild(h('div', {class:'mt'}, [c0]));
@@ -1085,12 +1085,12 @@ function kAtendimento(f, a, b, bRot, A){
     var LEAD_RX = /pre[cç]o|valor|localiza|dist[aâ]ncia|n[aã]o [eé] lead|sem interesse|desist|outr[ao] (cl[ií]nica|lugar)|n[aã]o responde|parou de responder|curios|fora do perfil|conv[eê]nio|plano de sa[uú]de/i;
     var pl = 0, po = 0; Object.keys(a.perdas).forEach(function(k){ if (LEAD_RX.test(k)) pl += a.perdas[k]; else po += a.perdas[k]; });
     var lentos = a.hum.filter(function(v){ return v > 60; }).length;
-    var cd = card('Atendimento ou qualidade do lead?', 'Sinais dos dois lados, no mesmo período');
+    var cd = card('Onde estão as oportunidades', 'Antes e durante a conversa, no mesmo período');
     cd.appendChild(h('div', {class:'vig-lados'}, [
-      h('div', {class:'vig-lado'}, [h('h4', {text:'Do lado do lead'}),
-        h('div', {class:'linha'}, [h('span', {text:'Não responderam ao robô'}), h('b', {text:fmt(a.sumiu) + ' · ' + pctTxt(a.sumiu, escreveram)})]),
-        h('div', {class:'linha'}, [h('span', {text:'Perdidos por preço, distância, sem interesse ou “não é lead”'}), h('b', {text:fmt(pl)})])]),
-      h('div', {class:'vig-lado'}, [h('h4', {text:'Do lado do atendimento'}),
+      h('div', {class:'vig-lado'}, [h('h4', {text:'Antes da conversa'}),
+        h('div', {class:'linha'}, [h('span', {text:'Não responderam à primeira mensagem do robô'}), h('b', {text:fmt(a.sumiu) + ' · ' + pctTxt(a.sumiu, escreveram)})]),
+        h('div', {class:'linha'}, [h('span', {text:'Perdidos por preço, distância, sem interesse ou fora do perfil'}), h('b', {text:fmt(pl)})])]),
+      h('div', {class:'vig-lado'}, [h('h4', {text:'Durante o atendimento'}),
         h('div', {class:'linha'}, [h('span', {text:'Pediram atendimento e ficaram sem resposta'}), h('b', {text:fmt(a.sem_hum) + ' · ' + pctTxt(a.sem_hum, a.conversou)})]),
         h('div', {class:'linha'}, [h('span', {text:'Respondidos depois de 1 hora útil'}), h('b', {text:fmt(lentos) + ' · ' + pctTxt(lentos, a.hum.length)})]),
         h('div', {class:'linha'}, [h('span', {text:'Perdidos sem motivo registrado ou por outro motivo'}), h('b', {text:fmt(po)})])])
@@ -1159,14 +1159,14 @@ function kResumo(f, a, A){
     var stC = pb < .2 ? ['Boa', 'ok'] : pb < .4 ? ['Atenção', 'at'] : ['Ponto de melhoria', 'ruim'];
     bloco('Condução até o agendamento', stC[0], stC[1], fmt(dg.lead_bom_atend_falhou) + ' de ' + fmt(conv), (x.sintese && x.sintese.conducao) || 'conversas com lead interessado tiveram alguma brecha.');
   } else bloco('Condução até o agendamento', 'Sem auditoria', 'neu', '—', 'Ainda não há leitura de conversas para este período.');
-  // 3) qualidade do lead: números do período + auditoria
+  // 3) quem ainda não respondeu: números do período + auditoria
   var tot = a.sumiu + a.conversou;
   if (temV && tot){
     var ps = a.sumiu / tot;
-    bloco('Qualidade do lead', ps >= .2 ? 'Maior perda' : 'Atenção', ps >= .2 ? 'ruim' : 'at', nf0.format(ps * 100) + '%',
-      'dos leads não responderam nem ao robô. ' + ((x && x.sintese && x.sintese.lead) || ''));
+    bloco('Quem ainda não respondeu', 'Oportunidade', 'at', nf0.format(ps * 100) + '%',
+      'dos leads não responderam à primeira mensagem do robô. ' + ((x && x.sintese && x.sintese.lead) || ''));
   } else if (x && x.diagnostico){
-    bloco('Qualidade do lead', 'Ver auditoria', 'at', pctTxt(x.diagnostico.lead_fraco, x.amostra), (x.sintese && x.sintese.lead) || 'das conversas lidas: o lead não engajou.');
+    bloco('Quem ainda não respondeu', 'Oportunidade', 'at', pctTxt(x.diagnostico.lead_fraco, x.amostra), (x.sintese && x.sintese.lead) || 'das conversas lidas: o lead não chegou a conversar.');
   }
   c.appendChild(term);
   if (au && au.sugestoes && au.sugestoes.length){
@@ -1177,7 +1177,7 @@ function kResumo(f, a, A){
     });
     c.appendChild(ol);
   }
-  c.appendChild(h('p', {class:'nota', text:'Velocidade e qualidade do lead usam todas as conversas do período. Condução e sugestões vêm da leitura de uma amostra de conversas, detalhada mais abaixo.'}));
+  c.appendChild(h('p', {class:'nota', text:'Velocidade e quem ainda não respondeu usam todas as conversas do período. Condução e sugestões vêm da leitura de uma amostra de conversas, detalhada mais abaixo.'}));
   f.appendChild(c);
 }
 
@@ -1195,7 +1195,7 @@ function kAuditoria(f, A){
   var quad = h('div', {class:'vig-quad'});
   [['lead_bom_atend_bom', 'Lead conversou e o atendimento conduziu bem', 'Respondeu, entendeu o caso e convidou para a consulta', 'ok'],
    ['lead_bom_atend_falhou', 'Lead conversou e o atendimento deixou brecha', 'Demora, pergunta sem resposta ou falta de convite', 'ruim'],
-   ['lead_fraco', 'Lead não engajou ou não tinha perfil', 'Qualidade do lead', 'neutro'],
+   ['lead_fraco', 'Lead não chegou a conversar', 'Oportunidade de recontato', 'neutro'],
    ['sem_dados', 'Não se aplica', 'Não era lead novo', 'neutro']].forEach(function(q){
     var n = dg[q[0]] || 0;
     quad.appendChild(h('div', {class:'vig-q vig-' + q[3]}, [h('span', {class:'vig-qn', text:fmt(n)}), h('b', {text:q[1]}), h('small', {text:q[2] + ' · ' + pctTxt(n, tot)})]));
@@ -1210,10 +1210,10 @@ function kAuditoria(f, A){
   if ((x.por_esp && x.por_esp.length) || (x.lead_motivos && x.lead_motivos.length)){
     var row2 = h('div', {class:'grid g2'});
     var c3 = h('div', null, [h('h4', {class:'vig-sub', text:'Por especialidade'})]);
-    c3.appendChild(tabela(['Especialidade', 'Lidas', 'Conduziu bem', 'Deixou brecha', 'Lead não engajou'], (x.por_esp || []).map(function(k){
+    c3.appendChild(tabela(['Especialidade', 'Lidas', 'Conduziu bem', 'Deixou brecha', 'Não chegou a conversar'], (x.por_esp || []).map(function(k){
       return {cel:[k[0], fmt(k[1]), fmt(k[2]), fmt(k[3]), fmt(k[4])]}; }), null, {esq:[0]}));
     c3.appendChild(h('p', {class:'nota', text:'Poucas conversas por especialidade: serve para ver o padrão, não para comparar percentuais.'}));
-    var c4 = h('div', null, [h('h4', {class:'vig-sub', text:'Por que o lead não engajou'})]);
+    var c4 = h('div', null, [h('h4', {class:'vig-sub', text:'Por que o lead não chegou a conversar'})]);
     var tl = 0; (x.lead_motivos || []).forEach(function(k){ tl += k[1]; });
     barrasH(c4, (x.lead_motivos || []).map(function(k){ return {l:k[0], sub:pctTxt(k[1], tl) + ' destes leads', v:k[1]}; }));
     row2.appendChild(c3); row2.appendChild(c4); c.appendChild(row2);
