@@ -624,3 +624,15 @@ body.apresentar .rn-notas-w{display:none}
 body.apresentar .rn-rot-lista label{font-size:17px}
 .rn-comp{margin-top:18px}
 .rn-comp td b{font-weight:600;color:var(--madeira,#3B1E19)}
+.rn-rot-lab{display:flex;align-items:flex-start;gap:10px;font-size:14.5px;line-height:1.45;color:var(--madeira,#3B1E19);cursor:pointer;flex:1;min-width:0}
+.rn-rot-lab input[type=checkbox]{width:18px;height:18px;margin-top:2px;accent-color:#9D7B3E;flex:none;cursor:pointer}
+.rn-rot-lista li.feito .rn-rot-lab span{color:#8A7F72;text-decoration:line-through;text-decoration-color:#C9BBA5}
+.rn-rot-acoes{display:flex;align-items:center;gap:10px;flex:none}
+.rn-rot-bt{background:none;border:0;padding:2px 0;font:inherit;font-size:12.5px;color:#8A7F72;cursor:pointer}
+.rn-rot-bt:hover{color:#3B1E19;text-decoration:underline}
+.rn-rot-x:hover{color:#A33A2A}
+.rn-rot-ed{flex:1;font:inherit;font-size:14.5px;padding:5px 8px;border:1px solid #D2B48C;border-radius:8px;background:#fff;color:#3B1E19}
+.rn-rot-add{display:flex;gap:8px;margin-top:8px;padding-top:10px;border-top:1px solid #EFE7DA}
+.rn-rot-add input{flex:1;font:inherit;font-size:14px;padding:7px 10px;border:1px solid #DED8C5;border-radius:8px;background:#fff;color:#3B1E19}
+.rn-rot-add .tag{cursor:pointer}
+body.apresentar .rn-rot-lab{font-size:17px}

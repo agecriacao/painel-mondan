@@ -1841,46 +1841,72 @@ function pgReunioes(){
   var cn = h('div', {class:'mt rn-notas-w'}); f.appendChild(cn); rNotas(cn, R);
   return f;
 }
-/* O que a gente precisa conversar: checklist da reunião. Todos veem; a AGE marca (functions/api/pauta.js).
-   Fora do site (sem a API), as marcações ficam só neste navegador. */
+/* Pautas da reunião: lista com check de "conversado". Todos veem; a AGE adiciona, edita, exclui e marca
+   (functions/api/pauta.js). Fora do site (sem a API), tudo fica salvo só neste navegador. */
 function rRoteiro(hd, R, NUM){
-  var IT = R.roteiro, est = {feitos:{}}, pode = false, remoto = false, lsK = 'mondan-pauta-' + R.data;
+  var base = (R.roteiro || []).map(function(x){ return {t:x[0], alvo:x[1] || '', ok:false}; });
+  var IT = base.slice(), pode = false, remoto = false, meta = {}, editando = -1, lsK = 'mondan-pautas-' + R.data;
   var box = h('div', {class:'rn-rot'});
-  var topo = h('div', {class:'rn-rot-topo'}, [h('h4', {class:'vig-sub', text:'O que a gente precisa conversar'})]);
+  var topo = h('div', {class:'rn-rot-topo'}, [h('h4', {class:'vig-sub', text:'Pautas'})]);
   var prog = h('span', {class:'rn-rot-prog'}); topo.appendChild(prog);
   box.appendChild(topo);
   var ul = h('ul', {class:'rn-rot-lista'}); box.appendChild(ul);
+  var add = h('form', {class:'rn-rot-add'});
+  var inAdd = h('input', {type:'text', maxlength:'400', placeholder:'Adicionar pauta…', 'aria-label':'Nova pauta'});
+  add.appendChild(inAdd); add.appendChild(h('button', {type:'submit', class:'tag', text:'Adicionar'}));
+  add.addEventListener('submit', function(e){ e.preventDefault(); var t = inAdd.value.trim(); if (!t) return; IT.push({t:t, alvo:'', ok:false}); inAdd.value = ''; salva(); });
+  box.appendChild(add);
   var rod = h('p', {class:'nota rn-rot-st'}); box.appendChild(rod);
   hd.appendChild(box);
+  function ir(alvo){ return function(e){ e.preventDefault(); var el = document.getElementById(alvo); if (el) el.scrollIntoView({behavior:'smooth', block:'start'}); }; }
   function desenha(){
     ul.innerHTML = ''; var n = 0;
     IT.forEach(function(it, i){
-      var ok = !!est.feitos[i]; if (ok) n++;
-      var cb = h('input', {type:'checkbox', 'aria-label':'Conversado: ' + it[0]}); cb.checked = ok; cb.disabled = !pode;
-      cb.addEventListener('change', function(){ muda(i, cb.checked); });
-      var li = h('li', {class:ok ? 'feito' : ''}, [h('label', null, [cb, h('span', {text:it[0]})])]);
-      if (it[1] && document.getElementById(it[1])) li.appendChild(h('a', {href:'#' + it[1], class:'rn-rot-ir', text:'ver ' + (NUM[it[1]] || '').trim().replace(/\.$/, '') + ' →', onclick:function(e){ e.preventDefault(); var el = document.getElementById(it[1]); if (el) el.scrollIntoView({behavior:'smooth', block:'start'}); }}));
+      if (it.ok) n++;
+      var li = h('li', {class:it.ok ? 'feito' : ''});
+      var cb = h('input', {type:'checkbox', 'aria-label':'Conversado: ' + it.t}); cb.checked = !!it.ok; cb.disabled = !pode;
+      cb.addEventListener('change', function(){ it.ok = cb.checked; salva(); });
+      if (editando === i){
+        var ed = h('input', {type:'text', class:'rn-rot-ed', maxlength:'400'}); ed.value = it.t;
+        function ok(){ var t = ed.value.trim(); editando = -1; if (t) it.t = t; salva(); }
+        ed.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); ok(); } if (e.key === 'Escape'){ e.stopPropagation(); editando = -1; desenha(); } });
+        li.appendChild(h('div', {class:'rn-rot-lab'}, [cb, ed]));
+        li.appendChild(h('div', {class:'rn-rot-acoes'}, [h('button', {type:'button', class:'rn-rot-bt', text:'Salvar', onclick:ok}), h('button', {type:'button', class:'rn-rot-bt', text:'Cancelar', onclick:function(){ editando = -1; desenha(); }})]));
+        ul.appendChild(li); setTimeout(function(){ ed.focus(); }, 0); return;
+      }
+      li.appendChild(h('label', {class:'rn-rot-lab'}, [cb, h('span', {text:it.t})]));
+      var ac = h('div', {class:'rn-rot-acoes'});
+      if (it.alvo && document.getElementById(it.alvo)) ac.appendChild(h('a', {href:'#' + it.alvo, class:'rn-rot-ir', text:'ver ' + (NUM[it.alvo] || '').trim().replace(/\.$/, '') + ' →', onclick:ir(it.alvo)}));
+      if (pode){
+        ac.appendChild(h('button', {type:'button', class:'rn-rot-bt', title:'Editar', 'aria-label':'Editar pauta', text:'Editar', onclick:function(){ editando = i; desenha(); }}));
+        ac.appendChild(h('button', {type:'button', class:'rn-rot-bt rn-rot-x', title:'Excluir', 'aria-label':'Excluir pauta', text:'Excluir', onclick:function(){ IT.splice(i, 1); editando = -1; salva(); }}));
+      }
+      li.appendChild(ac);
       ul.appendChild(li);
     });
-    prog.textContent = n + ' de ' + IT.length + ' conversados';
-    rod.textContent = remoto ? (est.em ? 'Última marcação: ' + (est.por || '').split('@')[0] + ' em ' + new Date(est.em).toLocaleString('pt-BR') : (pode ? 'Marque cada item quando a gente tiver conversado.' : 'A AGE marca cada item durante a reunião.')) : 'Marcações salvas só neste navegador.';
+    if (!IT.length) ul.appendChild(h('li', {class:'vazio', text:'Nenhuma pauta ainda.'}));
+    prog.textContent = n + ' de ' + IT.length + ' conversadas';
+    add.style.display = pode ? '' : 'none';
+    rod.textContent = remoto ? (meta.em ? 'Última alteração: ' + (meta.por || '').split('@')[0] + ' em ' + new Date(meta.em).toLocaleString('pt-BR') : (pode ? 'Marque cada pauta quando a gente tiver conversado.' : 'A AGE marca cada pauta durante a reunião.')) : 'Alterações salvas só neste navegador.';
   }
-  function muda(i, v){
-    if (v) est.feitos[i] = true; else delete est.feitos[i];
+  function salva(){
     desenha();
-    if (!remoto){ try { localStorage.setItem(lsK, JSON.stringify(est.feitos)); } catch(e){} return; }
+    if (!remoto){ try { localStorage.setItem(lsK, JSON.stringify(IT)); } catch(e){} return; }
     rod.textContent = 'Salvando…';
-    fetch('/api/pauta?r=' + R.data, {method:'PUT', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({feitos:est.feitos})})
+    fetch('/api/pauta?r=' + R.data, {method:'PUT', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({itens:IT})})
       .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function(v){ est = v; desenha(); })
+      .then(function(v){ meta = v; if (editando < 0){ IT = v.itens; } desenha(); })
       .catch(function(){ rod.textContent = 'Não salvou. Tente de novo.'; });
   }
-  function local(){ remoto = false; pode = true; try { est.feitos = JSON.parse(localStorage.getItem(lsK) || '{}') || {}; } catch(e){ est.feitos = {}; } desenha(); }
+  function local(){ remoto = false; pode = true; try { var v = JSON.parse(localStorage.getItem(lsK) || 'null'); if (Array.isArray(v)) IT = v; } catch(e){} desenha(); }
   desenha();
   setTimeout(desenha, 0);
   fetch('/api/pauta?r=' + R.data, {credentials:'same-origin'})
     .then(function(r){ if (!r.ok) throw new Error(r.status); var t = r.headers.get('Content-Type') || ''; if (t.indexOf('json') < 0) throw new Error('html'); return r.json(); })
-    .then(function(v){ remoto = true; pode = !!v.pode; est = v; est.feitos = v.feitos || {}; desenha(); })
+    .then(function(v){ remoto = true; pode = !!v.pode; meta = v;
+      if (Array.isArray(v.itens)) IT = v.itens;
+      else if (v.feitos) IT.forEach(function(it, i){ it.ok = !!v.feitos[i]; });
+      desenha(); })
     .catch(local);
 }
 
