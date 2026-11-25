@@ -1969,6 +1969,14 @@ function rEssencial(f, R, NUM){
         var pg = h('div', {class:'es-painel es-gasto'}, [h('h5', {text:g.titulo})]);
         g.linhas.forEach(function(l){ pg.appendChild(h('div', {class:'es-gl' + (l[2] ? ' es-gl-' + l[2] : '')}, [h('span', {text:l[0]}), h('b', {text:l[1]})])); });
         if (g.nota) pg.appendChild(h('p', {class:'es-nota', text:g.nota}));
+        if (g.soma_meta){
+          var espS = sel.esp; sel.esp = 'todas'; var aS = agg({ini:R.de, fim:R.ate}); sel.esp = espS;
+          var kS = kAgg(R.de, R.ate), nd = ndias(R.de, R.ate), dm2 = ndias(R.de.slice(0, 7) + '-01', fimMes(R.de.slice(0, 7)));
+          var msgR = kS.wa_custo * DOLAR, totP = aS.spend + msgR;
+          pg.appendChild(h('h5', {class:'es-h5b', text:'Somando os anúncios · ' + rDdm(R.de, R.ate)}));
+          [['Anúncios no Meta', 'R$ ' + nf0.format(Math.round(aS.spend)), ''], ['Mensagens pagas no Kommo', 'R$ ' + nf0.format(Math.round(msgR)), ''], ['Total gasto no período', 'R$ ' + nf0.format(Math.round(totP)), 'sub'], ['No ritmo do mês', '≈ R$ ' + nf0.format(Math.round(totP / nd * dm2 / 100) * 100), 'total']].forEach(function(l){ pg.appendChild(h('div', {class:'es-gl' + (l[2] ? ' es-gl-' + l[2] : '')}, [h('span', {text:l[0]}), h('b', {text:l[1]})])); });
+          pg.appendChild(h('p', {class:'es-nota', text:'Direto do Meta (sem a campanha AZA) e do Kommo (custo das mensagens em dólar, a R$ 5,80).'}));
+        }
         return pg;
       })));
       });
