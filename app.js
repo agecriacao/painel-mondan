@@ -203,7 +203,7 @@ function porMes(r, pega){
 function zeraSt(){ return {comp:0, falta:0, canc:0, remarc:0, sem:0, fut:0}; }
 function totSt(o){ return o.comp + o.falta + o.canc + o.remarc + o.sem + o.fut; }
 function presenca(o){
-  var base = o.comp + o.falta;
+  var base = o.comp + o.falta + o.canc;
   if (!base) return {v:null, valida:false};
   var v = o.comp / base * 100, valida = o.sem / (base + o.sem) <= 0.2;
   return {v:v, valida:valida};
@@ -542,9 +542,9 @@ function pgGeral(){
   var convA = topo && a.agend !== null ? [h('b', {text:nf1.format(a.agend / topo * 100) + '%'}), ' em relação aos leads do Meta'] : null;
   itens.push({l:'Agendamentos feitos', sub:'pela data em que o paciente agendou', v:a.agend, b:b ? b.agend : undefined, bRot:bRot, conv:convA});
   itens.push({l:'Consultas no período', sub:'pela data da consulta', v:a.consTot, b:b ? b.consTot : undefined, bRot:bRot, cls:'b'});
-  var base = a.cons.comp + a.cons.falta;
+  var base = a.cons.comp + a.cons.falta + a.cons.canc;
   itens.push({l:'Compareceram', sub:'consultas realizadas', v:a.realizadas, b:b ? b.realizadas : undefined, bRot:bRot,
-    conv:base ? (a.pres.valida ? [h('b', {text:nf1.format(a.cons.comp / base * 100) + '%'}), ' das consultas que já aconteceram'] : ['Comparecimento em validação: ', h('b', {text:String(a.cons.sem)}), ' consultas passadas sem registro']) : null});
+    conv:base ? (a.pres.valida ? [h('b', {text:nf1.format(a.cons.comp / base * 100) + '%'}), ' das consultas marcadas que já passaram (' + fmt(a.cons.canc) + (a.cons.canc === 1 ? ' cancelada, ' : ' canceladas, ') + fmt(a.cons.falta) + (a.cons.falta === 1 ? ' falta)' : ' faltas)')] : ['Comparecimento em validação: ', h('b', {text:String(a.cons.sem)}), ' consultas passadas sem registro']) : null});
   if (a.kommo === 'nenhum') cf.appendChild(h('p', {class:'vazio', text:'A agenda começou a ser registrada no Kommo em julho de 2026.'}));
   else { barrasH(cf, itens); cf.appendChild(h('p', {class:'nota', text:NOTA_PRES})); }
   row.appendChild(cf);
@@ -1247,7 +1247,7 @@ function kAuditoria(f, A){
   var mxB = Math.max.apply(null, (x.brechas || []).map(function(k){ return k[1]; }).concat([1]));
   c2.appendChild(h('div', {class:'br-lista'}, (x.brechas || []).map(function(k, bi){
     var L = (x.brechas_ids && x.brechas_ids[bi]) || [], e = k[2];
-    var sum = h('summary', null, [h('div', {class:'br-t'}, [h('span', {text:k[0]}), h('small', {text:pctTxt(k[1], x.amostra) + ' das conversas'})]),
+    var sum = h('summary', null, [h('i', {class:'br-ar', 'aria-hidden':'true', text:'▸'}), h('div', {class:'br-t'}, [h('span', {text:k[0]}), h('small', {text:pctTxt(k[1], x.amostra) + ' das conversas'})]),
       h('div', {class:'br-bar'}, [h('div', {style:'width:' + Math.max(3, k[1] / mxB * 100) + '%'})]), h('b', {class:'br-n', text:fmt(k[1])})]);
     var corpo = h('div', {class:'br-corpo'});
     if (L.length) corpo.appendChild(h('div', {class:'br-l'}, [h('span', {text:'Exemplos no Kommo:'})].concat(L.map(function(id, i){ return h('a', {href:'https://viniciusbcunha.kommo.com/leads/detail/' + id, target:'_blank', rel:'noopener', text:'Conversa ' + (i + 1) + ' ↗'}); }))));
@@ -1684,7 +1684,7 @@ function notas(){
   return h('details', {class:'notas'}, [h('summary', {text:'Como ler estes números'}), h('ul', null, [
     h('li', {text:'Leads e custo por lead vêm 100% do Meta: são as conversas iniciadas pelos anúncios. Quem chega por outros caminhos (orgânico, indicação) não entra nessa conta. O custo por lead considera só as campanhas de lead de pacientes (as de nome LEAD_WHATSAPP); ficam de fora reconhecimento de marca (awareness) e captação de médicos, que aparecem no investimento total.'}),
     h('li', {text:'Agendamentos contam pela data em que o paciente agendou; consultas e comparecimento, pela data da consulta. Por isso os dois números não se somam.'}),
-    h('li', {text:'Comparecimento = compareceram ÷ (compareceram + faltaram). Quando mais de 20% das consultas que já passaram estão sem registro, o percentual fica em validação. Esses dados dependem do registro feito pelo atendimento da clínica na planilha de agendamentos.'}),
+    h('li', {text:'Comparecimento = compareceram ÷ (compareceram + faltaram + cancelaram), entre as consultas que já passaram da data. Remarcações não entram, porque a consulta foi para outra data. Quando mais de 20% das consultas que já passaram estão sem registro, o percentual fica em validação. Esses dados dependem do registro feito pelo atendimento da clínica na planilha de agendamentos.'}),
     h('li', {text:'Investimento, leads e cliques vêm direto do Gerenciador de Anúncios do Meta. Não incluem as campanhas de capilar geridas pela agência anterior (maio a agosto de 2026).'}),
     h('li', {text:'Agendamentos, consultas, avaliações e origem: aba Agendamentos Kommo da planilha, registrada desde julho de 2026.'})
   ])]);
