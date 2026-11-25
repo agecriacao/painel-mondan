@@ -163,6 +163,7 @@ export async function onRequest(ctx) {
     return new Response('Não encontrado', { status: 404, headers: SEG });
   }
 
+  ctx.data.email = String(s.e).toLowerCase();       // usado por functions/api/notas.js
   const resp = await next();
   const out = new Response(resp.body, resp);
   for (const [k, v] of Object.entries(SEG)) out.headers.set(k, v);

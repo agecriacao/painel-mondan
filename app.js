@@ -564,24 +564,28 @@ function pgGeral(){
 }
 function rotCurto(B){ return B.mes ? nomeMes(B.mes) : 'anterior'; }
 
+function blocoCortesia(host, st, stB, bRot){
+  var tot = totSt(st), passou = st.comp + st.falta + st.canc + st.remarc + st.sem;
+  var cel = function(n, rot, cor, sub){ return h('div', {class:'ct-c'}, [h('span', {class:'ct-n', style:cor ? 'color:' + cor : null, text:fmt(n)}), h('b', {text:rot}), sub ? h('small', {text:sub}) : null]); };
+  host.appendChild(h('div', {class:'ct-grid'}, [
+    cel(tot, 'Marcadas', null, 'avaliações com data no período'),
+    cel(st.comp, 'Compareceram', 'var(--st-comp)', passou ? pctTxt(st.comp, passou) + ' das que já passaram' : null),
+    cel(st.canc, 'Cancelaram', 'var(--st-canc)', passou ? pctTxt(st.canc, passou) + ' das que já passaram' : null),
+    cel(st.falta, 'Faltaram', 'var(--st-falta)', passou ? pctTxt(st.falta, passou) + ' das que já passaram' : null),
+    cel(st.remarc + st.fut + st.sem, 'Outras', 'var(--ink-3)', [st.remarc ? st.remarc + ' remarcaram' : '', st.fut ? st.fut + ' ainda vão acontecer' : '', st.sem ? st.sem + ' sem registro' : ''].filter(Boolean).join(' · ') || 'nenhuma')
+  ]));
+  barraStatus(host, st);
+  if (passou) host.appendChild(h('p', {class:'ct-frase'}, [h('b', {text:'De cada 10 avaliações cortesia que já passaram da data, ' + nf0.format(st.comp / passou * 10) + ' compareceram e ' + nf0.format((st.canc + st.falta) / passou * 10) + ' cancelaram ou faltaram.'})]));
+  if (stB && totSt(stB)){ var pb = stB.comp + stB.falta + stB.canc + stB.remarc + stB.sem; host.appendChild(h('p', {class:'nota', text:(bRot && bRot !== 'anterior' ? 'Em ' + bRot : 'No período anterior') + ': ' + fmt(totSt(stB)) + ' marcadas, ' + fmt(stB.comp) + ' compareceram (' + pctTxt(stB.comp, pb) + ' das que passaram), ' + fmt(stB.canc) + ' cancelaram e ' + fmt(stB.falta) + ' faltaram.'})); }
+}
 function cardAvaliacoes(a, b, bRot){
   var c = card('Avaliações cortesia · dermatologia', 'Pela data da avaliação');
   c.appendChild(h('div', {class:'alerta', style:'margin:0 0 14px'}, [icone('alerta'), h('span', {text:avalNota()})]));
   if (!espOk('derm')){ c.appendChild(h('p', {class:'vazio', text:'O filtro de especialidade atual não inclui dermatologia.'})); return c; }
   if (a.kommo === 'nenhum'){ c.appendChild(h('p', {class:'vazio', text:'A agenda começou a ser registrada no Kommo em julho de 2026.'})); return c; }
-  var st = a.avalDerm, tot = a.avalDermTot, bt = b ? b.avalDermTot : null;
-  var big = h('div', {class:'big'}, [h('strong', {text:fmt(tot)}), h('span', {text:tot === 1 ? 'avaliação marcada para o período' : 'avaliações marcadas para o período'})]);
-  if (b && b.kommo !== 'nenhum'){ var ch = chipDelta(tot, bt, 'maior', false, 'n'); if (ch) big.appendChild(ch); }
-  c.appendChild(big);
-  barraStatus(c, st);
-  var pr = presenca(st), prb = b ? presenca(b.avalDerm) : null;
-  c.appendChild(h('div', {class:'mini'}, [
-    h('div', null, ['Novas marcações', h('b', {text:fmt(a.avalDermA)})]),
-    h('div', null, ['Comparecimento', h('b', {text:pr.v === null ? '—' : (pr.valida ? fmt(pr.v, 'pct') : 'em validação')})]),
-    h('div', null, [bRot && bRot !== 'anterior' ? 'Comparec. em ' + bRot : 'Período anterior', h('b', {text:prb && prb.v !== null && prb.valida ? fmt(prb.v, 'pct') : '—'})])
-  ]));
-  if (st.sem) c.appendChild(alerta(st.sem + (st.sem === 1 ? ' avaliação já passou da data e está' : ' avaliações já passaram da data e estão') + ' sem registro de presença na aba Agendamentos Kommo da planilha (coluna Comparecimento). Vale pedir a atualização ao atendimento.'));
-  c.appendChild(h('p', {class:'nota', text:'Serviço “Avaliação cortesia” de dermatologia, na aba Agendamentos Kommo da planilha. Novas marcações: avaliações agendadas dentro do período, para qualquer data. Cancelaram e remarcaram aparecem separados na legenda.'}));
+  blocoCortesia(c, a.avalDerm, b && b.kommo !== 'nenhum' ? b.avalDerm : null, bRot);
+  if (a.avalDerm.sem) c.appendChild(alerta(a.avalDerm.sem + (a.avalDerm.sem === 1 ? ' avaliação já passou da data e está' : ' avaliações já passaram da data e estão') + ' sem registro de presença na aba Agendamentos Kommo da planilha (coluna Comparecimento).'));
+  c.appendChild(h('p', {class:'nota', text:'Serviço “Avaliação” de dermatologia na aba Agendamentos Kommo da planilha, pela data da avaliação. Os percentuais contam cancelamentos e faltas entre as avaliações que já passaram da data. ' + fmt(a.avalDermA) + ' avaliações foram agendadas dentro do período (para qualquer data).'}));
   return c;
 }
 
@@ -1756,9 +1760,20 @@ function pgReunioes(){
   if (ka.vigia_dias) g.appendChild(tile({rot:'Equipe responde em', v:mediana(ka.hum), b:kb && kb.vigia_dias ? mediana(kb.hum) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'mediana, depois que o lead pede uma pessoa'}));
   else g.appendChild(tile({rot:'Primeira resposta da equipe', v:mediana(ka.resp), b:kb && kb.dias ? mediana(kb.resp) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'mediana em horário de atendimento'}));
   c1.appendChild(g);
-  if (R.reporte && R.reporte.length){
+  if (R.destaques && R.destaques.length){
     c1.appendChild(h('h4', {class:'vig-sub', text:'Destaques'}));
-    c1.appendChild(h('ul', {class:'rn-lista'}, R.reporte.map(function(t){ return h('li', {text:t}); })));
+    c1.appendChild(h('div', {class:'rn-dest'}, R.destaques.map(function(d){ return h('div', {class:'rn-d rn-d-' + (d[3] || 'neu')}, [h('span', {class:'rn-dn', text:d[0]}), h('b', {text:d[1]}), d[2] ? h('small', {text:d[2]}) : null]); })));
+  }
+  if (R.cortesia){
+    var espB = sel.esp; sel.esp = 'todas';
+    var ac = agg({ini:R.cortesia[0], fim:R.cortesia[1]}), bc = R.cortesia[2] ? agg({ini:R.cortesia[2], fim:R.cortesia[3]}) : null;
+    sel.esp = espB;
+    var cc = h('div', {class:'rn-cort'}, [h('h4', {class:'vig-sub', text:'Avaliação cortesia de dermatologia · ' + rDdm(R.cortesia[0], R.cortesia[1])})]);
+    blocoCortesia(cc, ac.avalDerm, bc ? bc.avalDerm : null, R.cortesia[2] ? rDdm(R.cortesia[2], R.cortesia[3]) : null);
+    c1.appendChild(cc);
+  }
+  if (R.reporte && R.reporte.length){
+    c1.appendChild(h('details', {class:'rn-mais'}, [h('summary', {text:'Ler os destaques em texto'}), h('ul', {class:'rn-lista'}, R.reporte.map(function(t){ return h('li', {text:t}); }))]));
   }
   f.appendChild(h('div', {class:'mt'}, [c1]));
 
@@ -1771,7 +1786,7 @@ function pgReunioes(){
   /* 3 e 4) pontos a melhorar e oportunidades */
   function itens(lista, cls){
     return h('div', {class:'rn-itens'}, (lista || []).map(function(x){
-      return h('div', {class:'rn-item ' + cls}, [h('b', {text:x[0]}), h('p', {text:x[1]}), x[2] ? rLink(x[2]) : null]);
+      return h('div', {class:'rn-item ' + cls + (x[3] ? ' rn-item-n' : '')}, [x[3] ? h('span', {class:'rn-in', text:x[3]}) : null, h('div', null, [h('b', {text:x[0]}), h('p', {text:x[1]}), x[2] ? rLink(x[2]) : null])]);
     }));
   }
   var row = h('div', {class:'grid g2 mt'});
@@ -1798,7 +1813,27 @@ function pgReunioes(){
   if (!(R.combinados && R.combinados.length) && !(R.passos && R.passos.length))
     c6.appendChild(h('div', {class:'rn-vazio'}, [h('b', {text:'A preencher na reunião'}), h('p', {text:'Para cada estratégia acima: aprovada, adiada ou não aprovada, com responsável e prazo. Os combinados entram aqui logo depois da reunião e viram as pendências da próxima.'})]));
   f.appendChild(h('div', {class:'mt'}, [c6]));
+  var cn = h('div', {class:'mt rn-notas-w'}); f.appendChild(cn); rNotas(cn, R);
   return f;
+}
+/* Anotações internas da AGE: só aparecem no site, para os e-mails da AGE (functions/api/notas.js) */
+var NOTAS_EU = null;
+function rNotas(host, R){
+  function monta(eu){
+    if (!eu || !eu.age) return;
+    var c = card('Anotações da AGE', 'Só Amanda, Gustavo e Caio veem esta área', null, 'rn-notas');
+    if (!eu.ativo){ c.appendChild(h('p', {class:'vazio', text:'A área de anotações ainda não foi ativada no Cloudflare (falta o espaço de armazenamento NOTAS).'})); host.appendChild(c); return; }
+    var abas = [['reuniao:' + R.data, 'Desta reunião'], ['geral', 'Gerais']], atual = abas[0][0];
+    var tabs = h('div', {class:'tabs'}), ta = h('textarea', {class:'rn-ta', rows:'8', placeholder:'Escreva aqui. Só a equipe da AGE vê.'}), st = h('span', {class:'rn-nst'});
+    var bt = h('button', {type:'button', class:'rn-apr', text:'Salvar'});
+    function carrega(){ st.textContent = 'Carregando…'; ta.value = ''; fetch('/api/notas?chave=' + encodeURIComponent(atual), {credentials:'same-origin'}).then(function(r){ return r.json(); }).then(function(v){ ta.value = v.texto || ''; st.textContent = v.em ? 'Salvo por ' + (v.por || '').split('@')[0] + ' em ' + new Date(v.em).toLocaleString('pt-BR') : 'Nada salvo ainda'; }).catch(function(){ st.textContent = 'Não foi possível carregar'; }); }
+    abas.forEach(function(a){ var b = h('button', {type:'button', role:'tab', 'aria-selected':a[0] === atual ? 'true' : 'false', text:a[1]}); b.addEventListener('click', function(){ atual = a[0]; tabs.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-selected', x === b ? 'true' : 'false'); }); carrega(); }); tabs.appendChild(b); });
+    bt.addEventListener('click', function(){ bt.disabled = true; st.textContent = 'Salvando…'; fetch('/api/notas?chave=' + encodeURIComponent(atual), {method:'PUT', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({texto:ta.value})}).then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); }).then(function(v){ st.textContent = 'Salvo por ' + (v.por || '').split('@')[0] + ' em ' + new Date(v.em).toLocaleString('pt-BR'); }).catch(function(){ st.textContent = 'Não salvou. Tente de novo.'; }).then(function(){ bt.disabled = false; }); });
+    c.appendChild(tabs); c.appendChild(ta); c.appendChild(h('div', {class:'rn-nbar'}, [bt, st]));
+    host.appendChild(c); carrega();
+  }
+  if (NOTAS_EU !== null){ monta(NOTAS_EU); return; }
+  fetch('/api/notas?eu=1', {credentials:'same-origin'}).then(function(r){ return r.ok ? r.json() : null; }).then(function(eu){ NOTAS_EU = eu || false; monta(NOTAS_EU); }).catch(function(){ NOTAS_EU = false; });
 }
 
 /* =========================================================
