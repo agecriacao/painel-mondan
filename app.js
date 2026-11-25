@@ -91,6 +91,7 @@ var IC = {
   conteudo:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M10 8.5v5l4-2.5z"/><path d="M7 21h10"/>',
   kommo:'<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12.5h5"/>',
   google:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
+  reunioes:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.2A4.6 4.6 0 0 1 21 18.5"/>',
   alerta:'<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4.5M12 17.5v.01"/>'
 };
 function icone(nome){ var e = document.createElementNS(SVGNS, 'svg'); e.setAttribute('viewBox', '0 0 24 24'); e.setAttribute('aria-hidden', 'true'); e.innerHTML = IC[nome]; return e; }
@@ -135,7 +136,7 @@ var AVAL_SINAL_DESDE = '2026-11-18', AVAL_ULTIMO_MES = '2026-11';
 var NOTA_PRES = 'Comparecimento, faltas e cancelamentos dependem do registro feito pelo atendimento da clínica na planilha (aba Agendamentos Kommo, coluna Comparecimento).';
 function avalVisivel(r){ return r.ini <= fimMes(AVAL_ULTIMO_MES); }
 function avalNota(){ return (AVAL_SINAL_DESDE ? 'A partir de ' + dmy(AVAL_SINAL_DESDE) : 'Desde novembro de 2026') + ', a avaliação de dermatologia deixou de ser cortesia e passou a exigir sinal. Este quadro acompanha as avaliações cortesia que ainda estavam marcadas.'; }
-var PAGS = [['geral','Visão geral'],['agenda','Agenda e consultas'],['midia','Mídia paga'],['instagram','Instagram'],['conteudo','Análise de conteúdo'],['kommo','Kommo'],['google','Google Ads'],['evolucao','Evolução 2026']];
+var PAGS = [['geral','Visão geral'],['reunioes','Reuniões'],['agenda','Agenda e consultas'],['midia','Mídia paga'],['instagram','Instagram'],['conteudo','Análise de conteúdo'],['kommo','Kommo'],['google','Google Ads'],['evolucao','Evolução 2026']];
 var PRESETS = [['este_mes','Este mês'],['mes_passado','Mês passado'],['semana_passada','Semana passada'],['7d','7 dias'],['30d','30 dias']];
 
 function espOk(e){ var l = FILTRO_LISTA[sel.esp]; return !l || l.indexOf(e) >= 0; }
@@ -1633,10 +1634,115 @@ function notas(){
   ])]);
 }
 
+
+/* =========================================================
+   Reuniões: reporte, pontos a melhorar, oportunidades, estratégias e combinados
+   ========================================================= */
+var RST = {feito:['Feito','ok'], andamento:['Em andamento','at'], pendente:['Pendente','at'], definir:['A definir','neu'], previsto:['Previsto','neu'],
+  proposta:['Para decidir','at'], aprovada:['Aprovada','ok'], planejamento:['Em planejamento','neu'], adiada:['Adiada','neu'], nao:['Não aprovada','ruim'],
+  pauta:['Pauta preparada','at'], realizada:['Reunião realizada','ok']};
+var RLINK = {kommo:['kommo', 'atendimento', 'Vigia do atendimento'], remarketing:['kommo', 'remarketing', 'Remarketing'], conteudo:['conteudo', null, 'Análise de conteúdo'],
+  agenda:['agenda', null, 'Agenda e consultas'], instagram:['instagram', null, 'Instagram'], midia:['midia', null, 'Mídia paga'], google:['google', null, 'Google Ads'], geral:['geral', null, 'Visão geral']};
+function rStatus(k){ var x = RST[k] || [k || '—', 'neu']; return h('span', {class:'rn-st rn-' + x[1], text:x[0]}); }
+function rLink(k){
+  var l = RLINK[k]; if (!l) return null;
+  return h('button', {type:'button', class:'rn-link', text:'Ver em ' + l[2] + ' →', onclick:function(){
+    var R = sel.reuniaoR; if (R){ sel.preset = 'custom'; sel.ini = R.de; sel.fim = R.ate; sel.cmpOn = true; }
+    if (l[1]){ if (l[0] === 'kommo') sel.kaba = l[1]; }
+    document.body.classList.remove('apresentar'); irPara(l[0]);
+  }});
+}
+function rDdm(a, b){ return a.slice(5, 7) === b.slice(5, 7) ? (+a.slice(8)) + ' a ' + dm(b) : dm(a) + ' a ' + dm(b); }
+function pgReunioes(){
+  var f = document.createDocumentFragment(), RR = D.reunioes || {}, ids = Object.keys(RR).sort().reverse();
+  var topo = h('div', {class:'phead'}, [h('div', null, [h('h1', {text:'Reuniões'}), h('p', {class:'per', text:'Reporte, pontos a melhorar, oportunidades, próximas estratégias e o que foi combinado em cada reunião com os sócios'})])]);
+  f.appendChild(topo);
+  if (!ids.length){ f.appendChild(card('Nenhuma reunião registrada', null, [h('p', {class:'vazio', text:'A primeira pauta aparece aqui antes da próxima reunião.'})])); return f; }
+  if (!sel.reuniao || !RR[sel.reuniao]) sel.reuniao = ids[0];
+  var R = RR[sel.reuniao]; sel.reuniaoR = R;
+  var chips = h('div', {class:'tabs rn-chips', role:'tablist', 'aria-label':'Reuniões'});
+  ids.forEach(function(k){
+    var b = h('button', {type:'button', role:'tab', 'aria-selected':k === sel.reuniao ? 'true' : 'false', text:dmy(k) + (RR[k].status === 'pauta' ? ' · pauta' : '')});
+    b.addEventListener('click', function(){ sel.reuniao = k; render(); });
+    chips.appendChild(b);
+  });
+  var bAp = h('button', {type:'button', class:'rn-apr', text:document.body.classList.contains('apresentar') ? 'Sair da apresentação' : 'Modo apresentação'});
+  bAp.addEventListener('click', function(){ document.body.classList.toggle('apresentar'); render(); window.scrollTo({top:0}); });
+  f.appendChild(h('div', {class:'rn-barra'}, [chips, bAp]));
+
+  /* cabeçalho da reunião */
+  var hd = card('Reunião de ' + dmy(R.data), R.titulo || 'Reunião quinzenal com os sócios', null, 'rn-head');
+  var meta = h('div', {class:'rn-meta'});
+  meta.appendChild(rStatus(R.status));
+  meta.appendChild(h('span', {text:'Período analisado: ' + rDdm(R.de, R.ate) + (R.cmp_de ? ' · comparado com ' + rDdm(R.cmp_de, R.cmp_ate) : '')}));
+  if (R.participantes && R.participantes.length) meta.appendChild(h('span', {text:'Participantes: ' + R.participantes.join(', ')}));
+  hd.appendChild(meta);
+  if (R.manchete) hd.appendChild(h('p', {class:'rn-manchete', text:R.manchete}));
+  var pauta = [['rn-1','Reporte'],['rn-2','Pendências'],['rn-3','Pontos a melhorar'],['rn-4','Oportunidades'],['rn-5','Próximas estratégias'],['rn-6','Combinados e próximos passos']];
+  hd.appendChild(h('ol', {class:'rn-pauta'}, pauta.map(function(p){ return h('li', null, [h('a', {href:'#' + p[0], text:p[1], onclick:function(e){ e.preventDefault(); var el = document.getElementById(p[0]); if (el) el.scrollIntoView({behavior:'smooth', block:'start'}); }})]); })));
+  f.appendChild(h('div', {class:'mt'}, [hd]));
+
+  /* 1) reporte */
+  var c1 = card('1. Reporte', 'O que aconteceu de ' + rDdm(R.de, R.ate) + ', com os números do painel', null, 'rn-sec'); c1.id = 'rn-1';
+  var espAnt = sel.esp; sel.esp = 'todas';
+  var A = {ini:R.de, fim:R.ate}, B = R.cmp_de ? {ini:R.cmp_de, fim:R.cmp_ate} : null, a = agg(A), b = B ? agg(B) : null, bRot = B ? rDdm(R.cmp_de, R.cmp_ate) : null;
+  var ka = kAgg(R.de, R.ate), kb = B ? kAgg(B.ini, B.fim) : null;
+  sel.esp = espAnt;
+  var g = h('div', {class:'grid g3 rn-tiles'});
+  g.appendChild(tile({rot:'Investimento em anúncios', v:a.spend, b:b && b.spend, bRot:bRot, tipo:'brl0', sentido:'neutro', nota:'Meta Ads, sem a campanha AZA'}));
+  g.appendChild(tile({rot:'Leads (Meta)', v:a.conversas, b:b && b.conversas, bRot:bRot, tipo:'n', nota:'conversas iniciadas pelos anúncios'}));
+  g.appendChild(tile({rot:'Custo por lead', v:a.cpc, b:b && b.cpc, bRot:bRot, tipo:'brl2', sentido:'menor', nota:'só campanhas de lead'}));
+  g.appendChild(tile({rot:'Agendamentos feitos', v:a.agend, b:b && b.agend, bRot:bRot, tipo:'n', nota:'pela data em que o paciente agendou'}));
+  g.appendChild(tile({rot:'Consultas realizadas', v:a.realizadas, b:b && b.realizadas, bRot:bRot, tipo:'n', nota:a.pres.valida ? 'comparecimento de ' + nf0.format(a.pres.v) + '%' : 'comparecimento em validação (registro na planilha)'}));
+  if (ka.vigia_dias) g.appendChild(tile({rot:'Equipe responde em', v:mediana(ka.hum), b:kb && kb.vigia_dias ? mediana(kb.hum) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'mediana, depois que o lead pede uma pessoa'}));
+  else g.appendChild(tile({rot:'Primeira resposta da equipe', v:mediana(ka.resp), b:kb && kb.dias ? mediana(kb.resp) : undefined, bRot:bRot, tipo:'min', sentido:'menor', nota:'mediana em horário de atendimento'}));
+  c1.appendChild(g);
+  if (R.reporte && R.reporte.length){
+    c1.appendChild(h('h4', {class:'vig-sub', text:'Destaques'}));
+    c1.appendChild(h('ul', {class:'rn-lista'}, R.reporte.map(function(t){ return h('li', {text:t}); })));
+  }
+  f.appendChild(h('div', {class:'mt'}, [c1]));
+
+  /* 2) pendências */
+  var c2 = card('2. Pendências da reunião anterior', R.pendencias_nota || 'Como estão os próximos passos combinados antes', null, 'rn-sec'); c2.id = 'rn-2';
+  if (R.pendencias && R.pendencias.length) c2.appendChild(tabela(['Ação', 'Responsável', 'Situação', 'Observação'], R.pendencias.map(function(p){ return {cel:[p[0], p[1], rStatus(p[2]), p[3] || '']}; }), null, {esq:[0, 1, 3]}));
+  else c2.appendChild(h('p', {class:'vazio', text:'Sem pendências anteriores.'}));
+  f.appendChild(h('div', {class:'mt'}, [c2]));
+
+  /* 3 e 4) pontos a melhorar e oportunidades */
+  function itens(lista, cls){
+    return h('div', {class:'rn-itens'}, (lista || []).map(function(x){
+      return h('div', {class:'rn-item ' + cls}, [h('b', {text:x[0]}), h('p', {text:x[1]}), x[2] ? rLink(x[2]) : null]);
+    }));
+  }
+  var row = h('div', {class:'grid g2 mt'});
+  var c3 = card('3. Pontos a melhorar', 'O que segurou o resultado no período', [itens(R.melhorar, 'rn-m')], 'rn-sec'); c3.id = 'rn-3';
+  var c4 = card('4. Oportunidades', 'O que os dados mostram que dá para aproveitar', [itens(R.oportunidades, 'rn-o')], 'rn-sec'); c4.id = 'rn-4';
+  row.appendChild(c3); row.appendChild(c4); f.appendChild(row);
+
+  /* 5) estratégias */
+  var c5 = card('5. Próximas estratégias', 'Propostas para os próximos 15 dias e para o próximo mês', null, 'rn-sec'); c5.id = 'rn-5';
+  c5.appendChild(h('div', {class:'rn-estr'}, (R.estrategias || []).map(function(x, i){
+    return h('div', {class:'rn-e'}, [h('span', {class:'rn-en', text:String(i + 1)}), h('div', null, [
+      h('div', {class:'rn-et'}, [h('b', {text:x[0]}), rStatus(x[3])]), h('p', {text:x[1]}),
+      h('div', {class:'rn-eq'}, [x[2] ? h('span', {text:'Quem: ' + x[2]}) : null, x[4] ? rLink(x[4]) : null])])]);
+  })));
+  f.appendChild(h('div', {class:'mt'}, [c5]));
+
+  /* 6) combinados */
+  var c6 = card('6. Combinados e próximos passos', R.aprovacao || 'O que ficou decidido na reunião, com responsável e prazo', null, 'rn-sec'); c6.id = 'rn-6';
+  if (R.combinados && R.combinados.length) c6.appendChild(h('ul', {class:'rn-lista rn-comb'}, R.combinados.map(function(t){ return h('li', {text:t}); })));
+  if (R.passos && R.passos.length) c6.appendChild(tabela(['Próximo passo', 'Responsável', 'Prazo', 'Situação'], R.passos.map(function(p){ return {cel:[p[0], p[1], p[2] ? dm(p[2]) : '—', rStatus(p[3])]}; }), null, {esq:[0, 1]}));
+  if (!(R.combinados && R.combinados.length) && !(R.passos && R.passos.length))
+    c6.appendChild(h('div', {class:'rn-vazio'}, [h('b', {text:'A preencher na reunião'}), h('p', {text:'Para cada estratégia acima: aprovada, adiada ou não aprovada, com responsável e prazo. Os combinados entram aqui logo depois da reunião e viram as pendências da próxima.'})]));
+  f.appendChild(h('div', {class:'mt'}, [c6]));
+  return f;
+}
+
 /* =========================================================
    Filtros, navegação e URL
    ========================================================= */
-var PAGF = {geral:pgGeral, agenda:pgAgenda, midia:pgMidia, instagram:pgInstagram, remarketing:pgRemarketing, kommo:pgKommo, conteudo:pgConteudo, google:pgGoogle, evolucao:pgEvolucao};
+var PAGF = {geral:pgGeral, reunioes:pgReunioes, agenda:pgAgenda, midia:pgMidia, instagram:pgInstagram, remarketing:pgRemarketing, kommo:pgKommo, conteudo:pgConteudo, google:pgGoogle, evolucao:pgEvolucao};
 function render(){
   CACHE = {};
   var v = document.getElementById('view');
@@ -1644,6 +1750,8 @@ function render(){
   try { v.appendChild(PAGF[sel.pag]()); }
   catch (e){ try { console.error(e); } catch (x){} v.appendChild(h('div', {class:'erro', text:'Algo não carregou nesta página. Atualize; se continuar, avise a equipe da AGE.'})); }
   document.querySelectorAll('[data-pag]').forEach(function(b){ if (b.dataset.pag === sel.pag) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  document.getElementById('filtros').hidden = sel.pag === 'reunioes';
+  if (sel.pag !== 'reunioes') document.body.classList.remove('apresentar');
   syncFiltros(); salvaUrl();
 }
 function irPara(p){ sel.pag = p; render(); window.scrollTo({top:0}); }
@@ -1658,7 +1766,8 @@ function syncFiltros(){
 function salvaUrl(){
   try {
     var u = new URL(location.href), q = u.searchParams;
-    ['modo','mes','cmp','p','ini','fim','cmpOn','esp','aba'].forEach(function(k){ q.delete(k); });
+    ['modo','mes','cmp','p','ini','fim','cmpOn','esp','aba','r'].forEach(function(k){ q.delete(k); });
+    if (sel.pag === 'reunioes' && sel.reuniao) q.set('r', sel.reuniao);
     q.set('modo', sel.modo);
     if (sel.modo === 'mes'){ q.set('mes', sel.mes); q.set('cmp', sel.cmp); }
     else { q.set('p', sel.preset); if (sel.preset === 'custom'){ q.set('ini', sel.ini); q.set('fim', sel.fim); } if (!sel.cmpOn) q.set('cmpOn', '0'); }
@@ -1675,6 +1784,7 @@ function lerUrl(){
     if (hs === 'remarketing'){ sel.pag = 'kommo'; sel.kaba = 'remarketing'; }
     if (KSUB.some(function(t){ return t[0] === q.get('aba'); })) sel.kaba = q.get('aba');
     if (q.get('aba') === 'organico') sel.caba = 'organico';
+    if (/^\d{4}-\d\d-\d\d$/.test(q.get('r') || '')) sel.reuniao = q.get('r');
     if (q.get('modo') === 'periodo'){
       sel.modo = 'periodo'; var p = q.get('p') || 'semana_passada';
       if (p === 'custom' && /^\d{4}-\d\d-\d\d$/.test(q.get('ini') || '') && /^\d{4}-\d\d-\d\d$/.test(q.get('fim') || '')){ sel.preset = 'custom'; sel.ini = q.get('ini'); sel.fim = q.get('fim'); }
@@ -1730,6 +1840,7 @@ fetch('data.json', {cache:'no-store'}).then(function(r){ if (!r.ok) throw new Er
   document.getElementById('carregando').remove();
   montar(); render();
   window.addEventListener('scroll', tipHide, {passive:true});
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && document.body.classList.contains('apresentar')){ document.body.classList.remove('apresentar'); render(); } });
 }).catch(function(e){
   try { console.error(e); } catch (x){}
   var v = document.getElementById('view'); v.textContent = '';

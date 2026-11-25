@@ -1,6 +1,6 @@
 # Painel Clínica Mondän
 
-Painel de resultados da Clínica Mondän, preparado pela AGE Criação.
+Painel de marketing da Clínica Mondän, preparado pela AGE Criação.
 
 Site estático (index.html, app.js, style.css, data.json), publicado no Cloudflare Pages com acesso restrito por e-mail (Cloudflare Access).
 
