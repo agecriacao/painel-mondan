@@ -617,6 +617,7 @@ function cardOrigem(a, b, bRot){
     var v = a.ori[k] || 0, p = v / a.agend * 100;
     return {l:ORI_NOME[k], sub:nf0.format(p) + '% dos agendamentos', v:v, b:b && b.kommo !== 'nenhum' ? (b.ori[k] || 0) : undefined, bRot:bRot};
   }));
+  if (a.ori.ig_medico) c.appendChild(h('p', {class:'nota', text:'Os anúncios rodam em collab com o perfil do médico. Quem vê o anúncio pode entrar no perfil e chamar por lá, e esse agendamento fica registrado como “Instagram do(a) médico(a)”. Ou seja, essa origem também recebe o efeito dos anúncios e do conteúdo feitos pela AGE.'}));
   return c;
 }
 
