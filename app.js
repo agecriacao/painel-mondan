@@ -751,13 +751,23 @@ function pgAtivas(f){
       h('div', null, [h('small', {text:'Gasto em 7 dias'}), h('b', {text:fmt(c.gasto7, 'brl2')}), h('span', {text:fmt(c.res7) + ' resultados · ' + fmt(c.cpr7, 'brl2') + ' cada'})]),
       h('div', null, [h('small', {text:'No ar desde'}), h('b', {text:dmy(c.inicio)})])]);
     cc.appendChild(meta);
-    if (c.tipo === 'ABO' && c.conjuntos.length) cc.appendChild(h('div', {class:'at-conj'}, c.conjuntos.map(function(k){ return h('span', null, [k.nome + ': ', h('b', {text:k.orc_dia ? 'R$ ' + nf0.format(k.orc_dia) + '/dia' : '—'})]); })));
-    cc.appendChild(tabela(['Anúncio', 'Conjunto', 'Desde', 'Gasto (7 dias)', 'Resultados', 'Custo por resultado', 'Links'], c.anuncios.map(function(a){
-      var lk = h('div', {class:'at-links'}, [h('a', {href:a.fb, target:'_blank', rel:'noopener', text:'Post ↗'})]);
-      if (a.ig) lk.appendChild(h('a', {href:a.ig, target:'_blank', rel:'noopener', text:'Instagram ↗'}));
-      lk.appendChild(h('a', {href:ACC + 'ads?act=' + X.conta + '&selected_ad_ids=' + a.id, target:'_blank', rel:'noopener', text:'Gerenciador ↗'}));
-      return {cel:[h('b', {text:a.nome}), a.conjunto, dm(a.criado), fmt(a.gasto7, 'brl2'), fmt(a.res7), a.cpr7 ? fmt(a.cpr7, 'brl2') : '—', lk]};
-    }), null, {esq:[0, 1, 6]}));
+    c.conjuntos.forEach(function(k){
+      var AA = c.anuncios.filter(function(a){ return a.conjunto === k.nome; });
+      cc.appendChild(h('div', {class:'at-cj'}, [
+        h('div', {class:'at-cjt'}, [h('b', {text:'Conjunto · ' + k.nome}), h('span', {text:AA.length + (AA.length === 1 ? ' anúncio' : ' anúncios')})]),
+        h('div', {class:'at-cjn'}, [
+          h('span', null, ['Orçamento ', h('b', {text:k.orc_dia ? 'R$ ' + nf0.format(k.orc_dia) + '/dia' : 'da campanha (R$ ' + nf0.format(c.orc_dia) + '/dia)'})]),
+          h('span', null, ['Gasto em 7 dias ', h('b', {text:fmt(k.gasto7, 'brl2')})]),
+          h('span', null, ['Resultados ', h('b', {text:fmt(k.res7)})]),
+          h('span', null, ['Custo por resultado ', h('b', {text:k.cpr7 ? fmt(k.cpr7, 'brl2') : '—'})]),
+          h('a', {href:ACC + 'adsets?act=' + X.conta + '&selected_adset_ids=' + k.id, target:'_blank', rel:'noopener', text:'Gerenciador ↗'})])]));
+      cc.appendChild(tabela(['Anúncio', 'Desde', 'Gasto (7 dias)', 'Resultados', 'Custo por resultado', 'Links'], AA.map(function(a){
+        var lk = h('div', {class:'at-links'}, [h('a', {href:a.fb, target:'_blank', rel:'noopener', text:'Post ↗'})]);
+        if (a.ig) lk.appendChild(h('a', {href:a.ig, target:'_blank', rel:'noopener', text:'Instagram ↗'}));
+        lk.appendChild(h('a', {href:ACC + 'ads?act=' + X.conta + '&selected_ad_ids=' + a.id, target:'_blank', rel:'noopener', text:'Gerenciador ↗'}));
+        return {cel:[h('b', {text:a.nome}), dm(a.criado), fmt(a.gasto7, 'brl2'), fmt(a.res7), a.cpr7 ? fmt(a.cpr7, 'brl2') : '—', lk]};
+      }), null, {esq:[0, 5]}));
+    });
     cc.appendChild(h('a', {class:'rn-kommo', href:ACC + 'campaigns?act=' + X.conta + '&selected_campaign_ids=' + c.id, target:'_blank', rel:'noopener', text:'Abrir a campanha no Gerenciador de Anúncios ↗'}));
     f.appendChild(cc);
   });
