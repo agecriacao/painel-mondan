@@ -731,12 +731,53 @@ function nomeAnuncio(n){
     .replace(/^AD#(\d+) V[ÍI]DEO /i, 'AD#$1 · ').toLowerCase().replace(/^ad#/, 'AD#').replace(/(^|· )(\S)/g, function(m0, p1, p2){ return p1 + p2.toUpperCase(); });
 }
 
+/* Mídia paga › Campanhas ativas: retrato do Meta (campanhas, conjuntos, orçamento e anúncios no ar) */
+function pgAtivas(f){
+  var X = D.midia && D.midia.ativas;
+  if (!X || !X.campanhas){ f.appendChild(card('Campanhas ativas', null, [h('p', {class:'vazio', text:'Ainda sem leitura das campanhas ativas.'})])); return; }
+  var C = X.campanhas, od = C.reduce(function(t, c){ return t + (c.orc_dia || 0); }, 0), na = C.reduce(function(t, c){ return t + c.anuncios.length; }, 0);
+  var ACC = 'https://adsmanager.facebook.com/adsmanager/manage/';
+  f.appendChild(h('p', {class:'nota', style:'margin:0 0 12px', text:'Lido direto do Meta em ' + new Date(X.gerado_em).toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) + '. Gasto e resultados: ' + X.janela + '.'}));
+  f.appendChild(h('div', {class:'es-hero'}, [
+    esNum(String(C.length), 'campanhas no ar', C.map(function(c){ return c.rot; }).join(' · '), 'neu'),
+    esNum(String(na), 'anúncios no ar', 'somando todas as campanhas', 'neu'),
+    esNum('R$ ' + nf0.format(od), 'por dia de orçamento', '≈ R$ ' + nf0.format(Math.round(od * 30.4 / 10) * 10) + ' por mês (30,4 dias)', 'at')]));
+  C.forEach(function(c){
+    var cc = card(c.rot, c.nome);
+    cc.classList.add('mt');
+    var meta = h('div', {class:'at-meta'}, [
+      h('div', null, [h('small', {text:'Orçamento'}), h('b', {text:'R$ ' + nf0.format(c.orc_dia) + '/dia'}), h('span', {text:c.tipo === 'CBO' ? 'na campanha' : 'somando os conjuntos'})]),
+      h('div', null, [h('small', {text:'Objetivo'}), h('b', {text:c.resultado})]),
+      h('div', null, [h('small', {text:'Gasto em 7 dias'}), h('b', {text:fmt(c.gasto7, 'brl2')}), h('span', {text:fmt(c.res7) + ' resultados · ' + fmt(c.cpr7, 'brl2') + ' cada'})]),
+      h('div', null, [h('small', {text:'No ar desde'}), h('b', {text:dmy(c.inicio)})])]);
+    cc.appendChild(meta);
+    if (c.tipo === 'ABO' && c.conjuntos.length) cc.appendChild(h('div', {class:'at-conj'}, c.conjuntos.map(function(k){ return h('span', null, [k.nome + ': ', h('b', {text:k.orc_dia ? 'R$ ' + nf0.format(k.orc_dia) + '/dia' : '—'})]); })));
+    cc.appendChild(tabela(['Anúncio', 'Conjunto', 'Desde', 'Gasto (7 dias)', 'Resultados', 'Custo por resultado', 'Links'], c.anuncios.map(function(a){
+      var lk = h('div', {class:'at-links'}, [h('a', {href:a.fb, target:'_blank', rel:'noopener', text:'Post ↗'})]);
+      if (a.ig) lk.appendChild(h('a', {href:a.ig, target:'_blank', rel:'noopener', text:'Instagram ↗'}));
+      lk.appendChild(h('a', {href:ACC + 'ads?act=' + X.conta + '&selected_ad_ids=' + a.id, target:'_blank', rel:'noopener', text:'Gerenciador ↗'}));
+      return {cel:[h('b', {text:a.nome}), a.conjunto, dm(a.criado), fmt(a.gasto7, 'brl2'), fmt(a.res7), a.cpr7 ? fmt(a.cpr7, 'brl2') : '—', lk]};
+    }), null, {esq:[0, 1, 6]}));
+    cc.appendChild(h('a', {class:'rn-kommo', href:ACC + 'campaigns?act=' + X.conta + '&selected_campaign_ids=' + c.id, target:'_blank', rel:'noopener', text:'Abrir a campanha no Gerenciador de Anúncios ↗'}));
+    f.appendChild(cc);
+  });
+  f.appendChild(h('p', {class:'nota mt', text:'“Post” abre o anúncio no Facebook; “Gerenciador” abre direto no Gerenciador de Anúncios (pede login com acesso à conta). Este retrato não muda sozinho: é atualizado quando a AGE lê o Meta de novo.'}));
+}
 function pgMidia(){
   var A = periodoA(), B = periodoB(), a = agg(A), b = B ? agg(B) : null, bRot = B ? rotCurto(B) : null;
   var f = document.createDocumentFragment();
   var av = []; if (A.fim > HOJE || (A.parcial)) av.push('Meta atualizado até ' + dm(HOJE));
   if (sel.esp !== 'todas') av.push('Mídia não separada por especialidade');
-  f.appendChild(cabecalho('Mídia paga', A, B, av));
+  if (!sel.maba) sel.maba = 'resultados';
+  f.appendChild(cabecalho('Mídia paga', sel.maba === 'ativas' ? {rot:'O que está no ar agora no Meta'} : A, sel.maba === 'ativas' ? null : B, sel.maba === 'ativas' ? [] : av));
+  var mt = h('div', {class:'tabs ksub', role:'tablist'});
+  [['resultados', 'Resultados'], ['ativas', 'Campanhas ativas']].forEach(function(t){
+    var bt = h('button', {type:'button', role:'tab', 'aria-selected':sel.maba === t[0] ? 'true' : 'false', text:t[1]});
+    bt.addEventListener('click', function(){ sel.maba = t[0]; render(); });
+    mt.appendChild(bt);
+  });
+  f.appendChild(mt);
+  if (sel.maba === 'ativas'){ pgAtivas(f); return f; }
   var g = h('div', {class:'grid g5'});
   g.appendChild(tile({hero:true, rot:'Investimento', v:a.spend, b:b && b.spend, bRot:bRot, tipo:'brl0', sentido:'neutro', serie:serieTile(function(x){ return x.spend; })}));
   g.appendChild(tile({rot:'Leads (Meta)', v:a.conversas, b:b && b.conversas, bRot:bRot, tipo:'n', serie:serieTile(function(x){ return x.conversas; })}));
